@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-fundo text-slate-900 antialiased;
+  }
+  input[type='text'],
+  input[type='email'],
+  input[type='password'],
+  input[type='search'],
+  input[type='number'],
+  select,
+  textarea {
+    @apply min-h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-marca-700 focus:outline focus:outline-2 focus:outline-marca-100;
+  }
+  textarea {
+    @apply py-2;
+  }
+}
