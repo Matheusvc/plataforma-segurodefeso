@@ -1,0 +1,43 @@
+# Configuração da plataforma. Valores com ${VAR:padrão} podem ser trocados por variáveis de ambiente.
+spring:
+  application:
+    name: seguro-defeso
+  datasource:
+    # Desenvolvimento: H2 em arquivo (pasta ./data). Produção: PostgreSQL, ex.:
+    # DATABASE_URL=jdbc:postgresql://localhost:5432/seguro_defeso
+    url: ${DATABASE_URL:jdbc:h2:file:./data/seguro_defeso;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH}
+    username: ${DATABASE_USER:sa}
+    password: ${DATABASE_PASSWORD:}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none          # as tabelas são criadas pelo Flyway (db/migration)
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 16MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: America/Fortaleza
+
+server:
+  port: ${PORT:8080}
+  servlet:
+    session:
+      timeout: 10h
+      cookie:
+        http-only: true
+        same-site: lax
+        secure: ${COOKIE_SEGURO:false}   # true em produção (HTTPS)
+
+app:
+  uploads: ${UPLOAD_FOLDER:./data/uploads}
+  zona: America/Fortaleza
+  hoje: ${HOJE:}                         # fixa a data de hoje (só testes/demonstração), formato AAAA-MM-DD
+  admin-nome: ${ADMIN_NOME:Administrador}
+  admin-email: ${ADMIN_EMAIL:}           # cria o primeiro administrador se ainda não houver usuários
+  admin-senha: ${ADMIN_SENHA:}
+  dados-exemplo: ${DADOS_EXEMPLO:false}  # true = carrega 10 clientes fictícios (nunca em produção)
