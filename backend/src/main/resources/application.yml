@@ -38,6 +38,6 @@ app:
   zona: America/Fortaleza
   hoje: ${HOJE:}                         # fixa a data de hoje (só testes/demonstração), formato AAAA-MM-DD
   admin-nome: ${ADMIN_NOME:Administrador}
-  admin-email: ${ADMIN_EMAIL:}           # cria o primeiro administrador se ainda não houver usuários
-  admin-senha: ${ADMIN_SENHA:}
-  dados-exemplo: ${DADOS_EXEMPLO:false}  # true = carrega 10 clientes fictícios (nunca em produção)
+  admin-email: ${ADMIN_EMAIL:admin@escritorio.local}   # cria o primeiro administrador se ainda não houver usuários
+  admin-senha: ${ADMIN_SENHA:Defeso2026adm}
+  dados-exemplo: ${DADOS_EXEMPLO:true}                 # true = carrega 10 clientes fictícios (nunca em produção)
