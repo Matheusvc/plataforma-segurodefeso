@@ -111,29 +111,28 @@ function Resumo({ a }) {
   const { executar, ocupado } = useAcao()
   const [senha, setSenha] = useState(null)
   const aux = (auxiliares || []).find((x) => x.id === p.auxiliarId)
-  const endereco = [[p.logradouro, p.numero].filter(Boolean).join(', '), p.complemento, p.bairro,
-    [c.municipio, p.uf].filter(Boolean).join('/'), p.cep && `CEP ${p.cep}`].filter(Boolean).join(' · ') || c.endereco || '—'
   const grupos = [
-    ['Dados pessoais', [
-      ['CPF', cpf(c.cpf)], ['Nascimento', br(c.nascimento) || '—'], ['Sexo', p.sexo || '—'], ['Estado civil', p.estadoCivil || '—'],
-      ['Nome do pai', p.nomePai || '—'], ['Nome da mãe', p.nomeMae || '—'],
-      ['Origem', [p.cidadeOrigem, p.estadoOrigem].filter(Boolean).join('/') || '—'], ['NIT', c.nit || '—'],
+    ['Cadastro', [
+      ['Data de nascimento', br(c.nascimento) || '—'], ['Sexo', p.sexo || '—'], ['CPF', cpf(c.cpf)], ['RG', p.rg || '—'],
+      ['Órgão do emissor', p.orgaoEmissor || '—'], ['Data da expedição', br(p.dataExpedicao) || '—'],
+      ['Nome do pai', p.nomePai || '—'], ['Nome da mãe', p.nomeMae || '—'], ['Status civil', p.estadoCivil || '—'],
+      ['Estado de origem', p.estadoOrigem || '—'], ['Cidade de origem', p.cidadeOrigem || '—'],
+      ['Título', p.tituloEleitor || '—'], ['RGP', c.rgpNumero || '—'],
     ]],
-    ['Documentos', [
-      ['RG', p.rg || '—'], ['Órgão emissor', p.orgaoEmissor || '—'], ['Expedição', br(p.dataExpedicao) || '—'],
-      ['Título de eleitor', p.tituloEleitor || '—'],
+    ['Dados do afiliado', [
+      ['Numeração da inscrição', p.inscricaoNumero || '—'], ['Data da afiliação', br(p.dataAfiliacao) || '—'],
     ]],
-    ['Pesca e RGP', [
-      ['Nº RGP', c.rgpNumero || '—'], ['RGP desde', c.rgpDesde || '—'], ['Validade do RGP', br(c.rgpValidade) || '—'],
-      ['Espécie', c.especie || '—'], ['Procuração e-CAC', br(c.procuracaoValidade) || 'sem procuração'],
+    ['Auxiliar jurídico', [['Auxiliar jurídico', aux ? aux.nome : 'não definido']]],
+    ['Endereço do associado', [
+      ['CEP', p.cep || '—'], ['Bairro', p.bairro || '—'], ['Número', p.numero || '—'], ['Estado', p.uf || '—'],
+      ['Complemento', p.complemento || '—'], ['Cidade', c.municipio || '—'], ['Logradouro', p.logradouro || c.endereco || '—'],
     ]],
-    ['Filiação à colônia', [
-      ['Colônia', c.colonia || '—'], ['Nº da inscrição', p.inscricaoNumero || '—'], ['Data da afiliação', br(p.dataAfiliacao) || '—'],
-    ]],
-    ['Contato e endereço', [['Telefone', c.telefone || '—'], ['Endereço', endereco]]],
-    ['Acompanhamento', [
-      ['Auxiliar jurídico', aux ? aux.nome : 'não definido'], ['Protocolo', c.protocolo || '—'],
-      ['Última conferência', br(c.ultimaConferencia) || 'nunca'], ['Conta gov.br', c.govNivel || 'não informado'],
+    ['Contato', [['Número do telefone', c.telefone || '—']]],
+    ['Dados do pedido', [
+      ['NIT/PIS', c.nit || '—'], ['Colônia', c.colonia || '—'], ['RGP desde', c.rgpDesde || '—'],
+      ['Validade do RGP', br(c.rgpValidade) || '—'], ['Espécie', c.especie || '—'],
+      ['Procuração e-CAC', br(c.procuracaoValidade) || 'sem procuração'], ['Conta gov.br', c.govNivel || 'não informado'],
+      ['Protocolo', c.protocolo || '—'], ['Última conferência', br(c.ultimaConferencia) || 'nunca'],
     ]],
   ]
   return (
@@ -144,20 +143,20 @@ function Resumo({ a }) {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-3">
             {campos.map(([k, v]) => <div key={k}><div className="text-xs text-slate-500">{k}</div><div className="font-semibold">{v}</div></div>)}
           </div>
+          {titulo === 'Cadastro' && p.senhaGovCadastrada && (
+            <Item>
+              <div className="flex-1">
+                <div className="font-semibold">Senha gov</div>
+                <div className="font-mono text-[13px] text-slate-600">{senha ?? '••••••••••'}</div>
+              </div>
+              {gestor && (senha === null
+                ? <Botao variante="neutro" pequeno disabled={ocupado}
+                  onClick={() => executar(() => api(`/clientes/${c.id}/senha-gov`), (r) => setSenha(r.senha))}>Revelar (fica registrado)</Botao>
+                : <Botao variante="neutro" pequeno onClick={() => setSenha(null)}>Ocultar</Botao>)}
+            </Item>
+          )}
         </section>
       ))}
-      {p.senhaGovCadastrada && (
-        <Item>
-          <div className="flex-1">
-            <div className="font-semibold">Senha gov.br</div>
-            <div className="font-mono text-[13px] text-slate-600">{senha ?? '••••••••••'}</div>
-          </div>
-          {gestor && (senha === null
-            ? <Botao variante="neutro" pequeno disabled={ocupado}
-              onClick={() => executar(() => api(`/clientes/${c.id}/senha-gov`), (r) => setSenha(r.senha))}>Revelar (fica registrado)</Botao>
-            : <Botao variante="neutro" pequeno onClick={() => setSenha(null)}>Ocultar</Botao>)}
-        </Item>
-      )}
       <Item>
         <div>
           <div className="font-semibold">Situação do pedido</div>
@@ -169,7 +168,10 @@ function Resumo({ a }) {
           </div>
         </div>
       </Item>
-      {c.observacoes && <Item><div><div className="font-semibold">Observações</div><div className="whitespace-pre-line text-[13px] text-slate-600">{c.observacoes}</div></div></Item>}
+      <section className="flex flex-col gap-2">
+        <h3 className="text-xs font-bold uppercase tracking-wide text-marca-900">Campo de observação</h3>
+        <div className="whitespace-pre-line text-sm text-slate-700">{c.observacoes || '—'}</div>
+      </section>
     </div>
   )
 }

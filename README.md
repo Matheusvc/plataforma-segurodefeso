@@ -149,7 +149,7 @@ cd backend
 
 ## Fluxo de trabalho
 
-1. **Triagem** (Clientes → Novo cliente): responde os requisitos; só depois abre o cadastro completo.
+1. **Triagem** (Cadastro → Novo cadastro): responde os requisitos; só depois abre o cadastro completo.
 2. **Entrevistas**: marque cada cliente como Não, Confirmado ou A confirmar.
 3. **DAE**: lançamento manual desde maio de 2026, só para clientes com entrevista confirmada (status Declarado ou Pago;
    competência sem lançamento conta como em aberto). O DAE não aparece em Prazos.

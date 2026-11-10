@@ -49,7 +49,7 @@ export default function Triagem() {
                 {resultado.itens.length > 0 && <ul className="mt-2 list-disc pl-5">{resultado.itens.map((t) => <li key={t}>{t}</li>)}</ul>}
               </Alerta>
               <Botao onClick={() => navegar('/clientes/novo', { state: { respostas: resp, triagem: resultado.titulo } })}>
-                Continuar para o cadastro ›
+                Continuar para o Cadastro ›
               </Botao>
             </>
           )}

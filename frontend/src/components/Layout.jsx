@@ -28,11 +28,11 @@ export default function Layout({ children }) {
           <div className="text-xs text-[#B9D3DA]">Painel do escritório</div>
         </div>
         <Item to="/" fim>Início</Item>
-        <Item to="/clientes">Clientes</Item>
-        <Item to="/entrevistas">Entrevistas</Item>
-        <Item to="/requerimentos">Requerimentos</Item>
+        <Item to="/clientes">Cadastro</Item>
         <Item to="/dae">DAE (eSocial)</Item>
         <Item to="/prazos">Prazos</Item>
+        <Item to="/entrevistas">Entrevistas</Item>
+        <Item to="/requerimentos">Requerimentos</Item>
         <Grupo>Mais</Grupo>
         <Item to="/mensagens">Mensagens</Item>
         {gestor && <Item to="/honorarios">Honorários</Item>}

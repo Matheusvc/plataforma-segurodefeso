@@ -23,14 +23,14 @@ export default function Clientes() {
 
   return (
     <>
-      <Titulo titulo="Clientes" sub="Cadastro único de cada pescador: requisitos, documentos, DAE, linha do tempo e honorários." />
+      <Titulo titulo="Cadastro" sub="Cadastro único de cada pescador: requisitos, documentos, DAE, linha do tempo e honorários." />
       <Card className="flex flex-col gap-3.5">
         <div className="flex flex-wrap items-end gap-2">
           <label className="flex flex-[1_1_280px] flex-col gap-1.5 text-xs font-semibold text-slate-600">
             Buscar
             <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome, CPF, município ou colônia" />
           </label>
-          <BotaoLink to="/triagem">+ Novo cliente (triagem)</BotaoLink>
+          <BotaoLink to="/triagem">+ Novo cadastro (triagem)</BotaoLink>
           <BotaoLink href={urlApi('/planilhas/exportar/clientes.xlsx')} variante="neutro">Exportar planilha</BotaoLink>
         </div>
         <Pills opcoes={opcoes} valor={filtro} onChange={setFiltro} />
