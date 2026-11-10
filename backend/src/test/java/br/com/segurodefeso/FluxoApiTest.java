@@ -24,7 +24,8 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
     "app.hoje=2026-11-09",
     "app.admin-email=admin@teste.com",
     "app.admin-senha=SenhaForte123",
-    "app.uploads=target/uploads-teste"
+    "app.uploads=target/uploads-teste",
+    "app.dados-exemplo=false"
 })
 @AutoConfigureMockMvc
 @DirtiesContext

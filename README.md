@@ -8,7 +8,7 @@ relatórios e planilhas.
 |---|---|
 | Back-end | Java 21, Spring Boot 3.5 (Web, Data JPA, Security, Validation), Flyway, Apache POI |
 | Banco | PostgreSQL em produção · H2 em arquivo para desenvolvimento (sem instalar nada) |
-| Front-end | React 19, React Router 7, Tailwind CSS 4, Vite 6 |
+| Front-end | React 19, React Router 7, Tailwind CSS 3.4, Vite 6 |
 | Segurança | Sessão com cookie HttpOnly, CSRF (cookie XSRF-TOKEN), BCrypt, bloqueio após 5 tentativas, papéis |
 
 ```
@@ -38,20 +38,30 @@ seguro-defeso/
 ## 1. Pré-requisitos
 
 - **Java 21** (JDK) — `java -version`
-- **Maven 3.9+** — `mvn -v` (ou use o IntelliJ/Eclipse, que já trazem)
 - **Node.js 20+** — `node -v`
+- Maven **não precisa instalar**: o projeto inclui o Maven Wrapper (`mvnw.cmd`).
 
 ## 2. Rodar em desenvolvimento
 
-Dois terminais:
+### Opção A — IntelliJ IDEA (recomendado no Windows)
 
-```bash
-# Terminal 1 — back-end (porta 8080), com banco H2 em ./data e 10 clientes fictícios para treino
+1. Abra a pasta `backend` como projeto no IntelliJ.
+2. O IntelliJ detecta o `pom.xml` e baixa as dependências automaticamente.
+3. Rode a classe `SeguroDefesoApplication` (clique com botão direito → Run).
+4. Em outro terminal, suba o front-end:
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+5. Abra **http://localhost:5173**.
+
+### Opção B — Linha de comando (PowerShell)
+
+```powershell
+# Terminal 1 — back-end (porta 8080)
 cd backend
-# Linux/Mac:
-ADMIN_EMAIL=voce@escritorio.com ADMIN_SENHA=SuaSenhaForte1 DADOS_EXEMPLO=true mvn spring-boot:run
-# Windows (PowerShell):
-$env:ADMIN_EMAIL="voce@escritorio.com"; $env:ADMIN_SENHA="SuaSenhaForte1"; $env:DADOS_EXEMPLO="true"; mvn spring-boot:run
+.\mvnw.cmd spring-boot:run
 
 # Terminal 2 — front-end (porta 5173, repassa /api para o 8080)
 cd frontend
@@ -59,7 +69,24 @@ npm install
 npm run dev
 ```
 
-Abra **http://localhost:5173** e entre com o e-mail e a senha definidos acima.
+### Login de desenvolvimento
+
+Com os valores padrão do `application.yml`, o sistema já cria um administrador:
+
+| Campo | Valor |
+|---|---|
+| E-mail | `admin@escritorio.local` |
+| Senha | `Defeso2026adm` |
+
+Dez clientes fictícios são carregados automaticamente (`DADOS_EXEMPLO=true`).
+
+Para usar credenciais diferentes, defina variáveis de ambiente antes de rodar:
+
+```powershell
+$env:ADMIN_EMAIL="voce@escritorio.com"
+$env:ADMIN_SENHA="SuaSenhaForte1"
+.\mvnw.cmd spring-boot:run
+```
 
 - O administrador só é criado na **primeira** execução (quando não há usuários). Depois, os demais usuários
   são criados pela tela **Usuários**.
@@ -68,9 +95,9 @@ Abra **http://localhost:5173** e entre com o e-mail e a senha definidos acima.
 
 ## 3. Gerar a versão de produção (um único arquivo .jar)
 
-```bash
-cd frontend && npm install && npm run build     # gera o React dentro de backend/src/main/resources/static
-cd ../backend && mvn clean package              # roda os testes e gera target/seguro-defeso-1.0.0.jar
+```powershell
+cd frontend; npm install; npm run build          # gera o React dentro de backend/src/main/resources/static
+cd ..\backend; .\mvnw.cmd clean package          # roda os testes e gera target/seguro-defeso-1.0.0.jar
 ```
 
 O `.jar` contém tudo (API + telas). Para rodar:
@@ -109,8 +136,9 @@ As tabelas são criadas automaticamente pelo Flyway na primeira execução.
 
 ## 5. Testes
 
-```bash
-cd backend && mvn test
+```powershell
+cd backend
+.\mvnw.cmd test
 ```
 
 - `RegrasTest` — regras de negócio (CPF, datas, DAE, bloqueios, honorários, prazos, fila, mensagens, triagem).
