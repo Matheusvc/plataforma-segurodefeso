@@ -99,7 +99,7 @@ class RegrasTest {
                 Map.of(), 0, 4, null, Entrevista.NAO), CFG, HOJE);
         assertTrue(nao.daeVencidos().isEmpty());
         assertTrue(nao.daeAbertos().isEmpty());
-        Prazos.calcular(List.of(a), List.of(), CFG, HOJE).forEach(p -> assertFalse(p.tipo().equals("DAE")));
+        Prazos.calcular(List.of(a), List.of(), HOJE).forEach(p -> assertFalse(p.tipo().equals("DAE")));
     }
 
     @Test
@@ -116,7 +116,7 @@ class RegrasTest {
     void prazosEFila() {
         Analise exig = Analisador.analisar(cliente(Etapa.EXIGENCIA, "prata", todosSim(),
                 EnumSet.copyOf(TipoDocumento.obrigatorios()), Map.of(), 0, 4, null), CFG, HOJE);
-        List<Prazos.Prazo> prazos = Prazos.calcular(List.of(exig), List.of(), CFG, HOJE);
+        List<Prazos.Prazo> prazos = Prazos.calcular(List.of(exig), List.of(), HOJE);
         Prazos.Prazo p = prazos.stream().filter(x -> x.tipo().equals("Exigência")).findFirst().orElseThrow();
         assertEquals(10L, p.dias());
         assertEquals("em 10 dia(s)", p.falta());

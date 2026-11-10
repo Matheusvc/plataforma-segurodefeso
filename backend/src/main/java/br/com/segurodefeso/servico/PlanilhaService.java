@@ -203,7 +203,7 @@ public class PlanilhaService {
                 List<Prazos.DefesoInfo> ds = defesos.findAll().stream().map(d -> new Prazos.DefesoInfo(d.getEspecie(),
                     d.getRegiao(), d.getPortaria(), d.getInicio(), d.getFim(), d.getPrazoRequerimento())).toList();
                 yield new Tabela(List.of("Data", "Tipo", "Cliente", "Descrição", "Situação"),
-                    Prazos.calcular(todos, ds, cfg, hoje.data()).stream()
+                    Prazos.calcular(todos, ds, hoje.data()).stream()
                         .map(p -> lista(p.dataBr(), p.tipo(), p.cliente(), p.texto(), p.falta())).toList(), Set.of());
             }
             case "honorarios" -> new Tabela(List.of("Nome", "CPF", "Parcelas liberadas", "Total de parcelas", "% honorários",
@@ -377,7 +377,7 @@ public class PlanilhaService {
             if (d.getOrDefault("nome", "").isBlank()) erros.add("sem nome");
             if (!Cpf.valido(cpf)) erros.add("CPF inválido");
             else if (!vistos.add(cpf)) erros.add("CPF repetido na planilha");
-            for (String campo : List.of("nascimento", "rgpValidade", "procuracaoValidade")) {
+            for (String campo : List.of("nascimento", "rgpValidade", "procuracaoValidade", "dataExpedicao", "dataAfiliacao")) {
                 String v = d.get(campo);
                 if (v != null && !v.isBlank() && Datas.ler(v) == null) {
                     avisos.add(ROTULOS.get(campo) + " com data inválida (ignorada)");

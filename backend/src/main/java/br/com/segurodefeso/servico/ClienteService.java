@@ -325,7 +325,7 @@ public class ClienteService {
     // ------------------------------------------------------------------ documentos
     @Transactional
     public Documento anexar(Long id, TipoDocumento tipo, String competencia, MultipartFile arquivo, Long usuarioId) {
-        buscar(id);
+        Cliente cliente = buscar(id);
         if (arquivo == null || arquivo.isEmpty()) {
             throw new RegraException("Escolha o arquivo.");
         }
@@ -343,7 +343,12 @@ public class ClienteService {
         Documento salvo = documentos.save(d);
         String comp = salvo.getCompetencia();
         String desc = tipo.getNome() + " anexado";
-        if (tipo == TipoDocumento.COMPROVANTE_DAE && comp != null) {
+        boolean daeValido = comp != null && cliente.getEntrevista() == Entrevista.CONFIRMADO
+            && Datas.competenciasDae(hoje.data()).contains(comp);
+        if (tipo == TipoDocumento.COMPROVANTE_DAE && comp != null && !daeValido) {
+            desc += " (DAE não marcado: só vale para entrevista confirmada e competência desde maio)";
+        }
+        if (tipo == TipoDocumento.COMPROVANTE_DAE && daeValido) {
             Dae dae = daes.findByClienteIdAndCompetencia(id, comp).orElseGet(() -> {
                 Dae n = new Dae();
                 n.setClienteId(id);

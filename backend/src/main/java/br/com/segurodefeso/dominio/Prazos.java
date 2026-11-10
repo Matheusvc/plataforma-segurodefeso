@@ -26,7 +26,7 @@ public final class Prazos {
         return n <= 30 ? "aviso" : "neutro";
     }
 
-    public static List<Prazo> calcular(List<Analise> clientes, List<DefesoInfo> defesos, ConfigValores cfg, LocalDate hoje) {
+    public static List<Prazo> calcular(List<Analise> clientes, List<DefesoInfo> defesos, LocalDate hoje) {
         List<Prazo> out = new ArrayList<>();
         for (Analise a : clientes) {
             ClienteDados c = a.cliente();

@@ -25,7 +25,6 @@ import br.com.segurodefeso.config.Hoje;
 import br.com.segurodefeso.dominio.Analise;
 import br.com.segurodefeso.dominio.ClienteDados;
 import br.com.segurodefeso.dominio.ConfigValores;
-import br.com.segurodefeso.dominio.Cpf;
 import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Dinheiro;
 import br.com.segurodefeso.dominio.Entrevista;
@@ -39,11 +38,9 @@ import br.com.segurodefeso.dominio.Triagem;
 import br.com.segurodefeso.entidade.Cliente;
 import br.com.segurodefeso.entidade.Dae;
 import br.com.segurodefeso.entidade.Defeso;
-import br.com.segurodefeso.entidade.RequisitoCliente;
 import br.com.segurodefeso.repositorio.ClienteRepo;
 import br.com.segurodefeso.repositorio.DaeRepo;
 import br.com.segurodefeso.repositorio.DefesoRepo;
-import br.com.segurodefeso.repositorio.RequisitoRepo;
 import br.com.segurodefeso.servico.ClienteService;
 import br.com.segurodefeso.servico.ConfigService;
 import br.com.segurodefeso.servico.EventoService;
@@ -69,7 +66,6 @@ public class OperacaoController {
 
     private final ClienteService clientes;
     private final ClienteRepo clienteRepo;
-    private final RequisitoRepo requisitos;
     private final DaeRepo daes;
     private final DefesoRepo defesos;
     private final ConfigService config;
@@ -77,11 +73,10 @@ public class OperacaoController {
     private final UsuarioAtual atual;
     private final Hoje hoje;
 
-    public OperacaoController(ClienteService clientes, ClienteRepo clienteRepo, RequisitoRepo requisitos, DaeRepo daes,
+    public OperacaoController(ClienteService clientes, ClienteRepo clienteRepo, DaeRepo daes,
                               DefesoRepo defesos, ConfigService config, EventoService eventos, UsuarioAtual atual, Hoje hoje) {
         this.clientes = clientes;
         this.clienteRepo = clienteRepo;
-        this.requisitos = requisitos;
         this.daes = daes;
         this.defesos = defesos;
         this.config = config;
@@ -223,7 +218,7 @@ public class OperacaoController {
 
     @GetMapping("/prazos")
     public List<Prazos.Prazo> prazos(@RequestParam(defaultValue = "Todos") String tipo) {
-        List<Prazos.Prazo> l = Prazos.calcular(clientes.carregar(false), defesosInfo(), config.valores(), hoje.data());
+        List<Prazos.Prazo> l = Prazos.calcular(clientes.carregar(false), defesosInfo(), hoje.data());
         return tipo.equals("Todos") ? l : l.stream().filter(p -> p.tipo().equals(tipo)).toList();
     }
 
