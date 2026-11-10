@@ -3,11 +3,9 @@ package br.com.segurodefeso.dominio;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
-/** Todos os vencimentos calculados a partir dos dados: exigência, recurso, RGP, procuração, DAE e defeso. */
+/** Vencimentos calculados a partir dos dados: exigência, recurso, RGP, procuração e defeso (o DAE tem tela própria). */
 public final class Prazos {
 
     public record Prazo(LocalDate data, String dataBr, String tipo, String cliente, Long clienteId, String texto,
@@ -30,7 +28,6 @@ public final class Prazos {
 
     public static List<Prazo> calcular(List<Analise> clientes, List<DefesoInfo> defesos, ConfigValores cfg, LocalDate hoje) {
         List<Prazo> out = new ArrayList<>();
-        Map<String, List<String>> porCompetencia = new LinkedHashMap<>();
         for (Analise a : clientes) {
             ClienteDados c = a.cliente();
             if (c.etapa() == Etapa.EXIGENCIA) {
@@ -48,15 +45,7 @@ public final class Prazos {
             if (a.procuracaoDias() != null && a.procuracaoDias() <= 90) {
                 add(out, c.procuracaoValidade(), "Procuração", c.nome(), c.id(), "Vencimento da procuração e-CAC.", hoje, true);
             }
-            List<Analise.DaeAberto> todos = new ArrayList<>(a.daeVencidos());
-            todos.addAll(a.daeAbertos());
-            for (Analise.DaeAberto d : todos) {
-                porCompetencia.computeIfAbsent(d.competencia(), k -> new ArrayList<>()).add(c.nome());
-            }
         }
-        porCompetencia.forEach((comp, nomes) -> add(out, Datas.vencimentoDae(comp, cfg.diaVencimentoDae()), "DAE",
-                String.join(", ", nomes), null, "DAE " + Datas.competenciaLabel(comp) + " não pago (" + nomes.size()
-                        + " cliente(s)). Vencimento estimado: conferir na guia.", hoje, true));
         for (DefesoInfo d : defesos) {
             add(out, d.inicio(), "Defeso", nvl(d.regiao(), "Todas as colônias"), null, "Início do defeso de " + d.especie()
                     + (d.portaria() != null && !d.portaria().isBlank() ? " (Portaria " + d.portaria() + ")" : "") + ".", hoje, false);

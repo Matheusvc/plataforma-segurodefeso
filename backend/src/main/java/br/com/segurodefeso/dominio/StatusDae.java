@@ -1,9 +1,8 @@
 package br.com.segurodefeso.dominio;
 
+/** Lançamento manual do DAE. Competência sem lançamento é considerada em aberto. */
 public enum StatusDae {
-    PENDENTE("Em aberto", "erro"),
-    GERADO("Gerado", "azul"),
-    ENVIADO("Enviado", "aviso"),
+    DECLARADO("Declarado", "azul"),
     PAGO("Pago", "ok");
 
     private final String nome;

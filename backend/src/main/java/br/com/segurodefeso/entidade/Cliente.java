@@ -4,7 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import br.com.segurodefeso.dominio.*;
+import br.com.segurodefeso.dominio.Entrevista;
+import br.com.segurodefeso.dominio.Etapa;
 import jakarta.persistence.*;
 
 @Entity
@@ -45,6 +46,29 @@ public class Cliente {
     private boolean ativo;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
+
+    private String sexo;
+    private String rg;
+    private String orgaoEmissor;
+    private LocalDate dataExpedicao;
+    private String nomePai;
+    private String nomeMae;
+    private String estadoCivil;
+    private String estadoOrigem;
+    private String cidadeOrigem;
+    private String tituloEleitor;
+    private String inscricaoNumero;
+    private LocalDate dataAfiliacao;
+    private String cep;
+    private String logradouro;
+    private String numero;
+    private String complemento;
+    private String bairro;
+    private String uf;
+    private String senhaGovCifrada;
+    private Long auxiliarId;
+    @Enumerated(EnumType.STRING)
+    private Entrevista entrevista = Entrevista.A_CONFIRMAR;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -106,4 +130,46 @@ public class Cliente {
     public void setCriadoEm(LocalDateTime criadoEm) { this.criadoEm = criadoEm; }
     public LocalDateTime getAtualizadoEm() { return atualizadoEm; }
     public void setAtualizadoEm(LocalDateTime atualizadoEm) { this.atualizadoEm = atualizadoEm; }
+    public String getSexo() { return sexo; }
+    public void setSexo(String sexo) { this.sexo = sexo; }
+    public String getRg() { return rg; }
+    public void setRg(String rg) { this.rg = rg; }
+    public String getOrgaoEmissor() { return orgaoEmissor; }
+    public void setOrgaoEmissor(String orgaoEmissor) { this.orgaoEmissor = orgaoEmissor; }
+    public LocalDate getDataExpedicao() { return dataExpedicao; }
+    public void setDataExpedicao(LocalDate dataExpedicao) { this.dataExpedicao = dataExpedicao; }
+    public String getNomePai() { return nomePai; }
+    public void setNomePai(String nomePai) { this.nomePai = nomePai; }
+    public String getNomeMae() { return nomeMae; }
+    public void setNomeMae(String nomeMae) { this.nomeMae = nomeMae; }
+    public String getEstadoCivil() { return estadoCivil; }
+    public void setEstadoCivil(String estadoCivil) { this.estadoCivil = estadoCivil; }
+    public String getEstadoOrigem() { return estadoOrigem; }
+    public void setEstadoOrigem(String estadoOrigem) { this.estadoOrigem = estadoOrigem; }
+    public String getCidadeOrigem() { return cidadeOrigem; }
+    public void setCidadeOrigem(String cidadeOrigem) { this.cidadeOrigem = cidadeOrigem; }
+    public String getTituloEleitor() { return tituloEleitor; }
+    public void setTituloEleitor(String tituloEleitor) { this.tituloEleitor = tituloEleitor; }
+    public String getInscricaoNumero() { return inscricaoNumero; }
+    public void setInscricaoNumero(String inscricaoNumero) { this.inscricaoNumero = inscricaoNumero; }
+    public LocalDate getDataAfiliacao() { return dataAfiliacao; }
+    public void setDataAfiliacao(LocalDate dataAfiliacao) { this.dataAfiliacao = dataAfiliacao; }
+    public String getCep() { return cep; }
+    public void setCep(String cep) { this.cep = cep; }
+    public String getLogradouro() { return logradouro; }
+    public void setLogradouro(String logradouro) { this.logradouro = logradouro; }
+    public String getNumero() { return numero; }
+    public void setNumero(String numero) { this.numero = numero; }
+    public String getComplemento() { return complemento; }
+    public void setComplemento(String complemento) { this.complemento = complemento; }
+    public String getBairro() { return bairro; }
+    public void setBairro(String bairro) { this.bairro = bairro; }
+    public String getUf() { return uf; }
+    public void setUf(String uf) { this.uf = uf; }
+    public String getSenhaGovCifrada() { return senhaGovCifrada; }
+    public void setSenhaGovCifrada(String senhaGovCifrada) { this.senhaGovCifrada = senhaGovCifrada; }
+    public Long getAuxiliarId() { return auxiliarId; }
+    public void setAuxiliarId(Long auxiliarId) { this.auxiliarId = auxiliarId; }
+    public Entrevista getEntrevista() { return entrevista; }
+    public void setEntrevista(Entrevista entrevista) { this.entrevista = entrevista; }
 }

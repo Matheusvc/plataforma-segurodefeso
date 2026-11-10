@@ -75,9 +75,9 @@ public class PlanilhaService {
 
     public static final List<Lista> LISTAS = List.of(
         new Lista("clientes", "Cadastro de clientes", "Dados pessoais, RGP, procuração, conta gov.br, etapa e pendências.", false),
-        new Lista("dae", "Controle de DAE", "Situação das últimas 6 competências, venda e valor do DAE.", false),
+        new Lista("dae", "Controle de DAE", "Situação de cada competência desde maio, venda e valor do DAE.", false),
         new Lista("requerimentos", "Requerimentos", "Etapa, protocolo, exigência, prazo e situação de cada pedido.", false),
-        new Lista("prazos", "Prazos", "Todos os vencimentos: exigência, recurso, DAE, RGP, procuração e defeso.", false),
+        new Lista("prazos", "Prazos", "Vencimentos: exigência, recurso, RGP, procuração e defeso.", false),
         new Lista("honorarios", "Honorários", "Parcelas liberadas, honorários devidos, recebidos e saldo.", true));
 
     /** Cabeçalhos aceitos na importação (sem acento, minúsculos, só letras e números). */
@@ -90,7 +90,7 @@ public class PlanilhaService {
         col("nit", "NIT", "nit", "pis", "nitpis", "pisnit");
         col("nascimento", "Nascimento", "nascimento", "datanascimento", "datadenascimento", "dn");
         col("telefone", "Telefone", "telefone", "celular", "whatsapp", "fone", "contato");
-        col("endereco", "Endereço", "endereco", "logradouro");
+        col("endereco", "Endereço", "endereco");
         col("municipio", "Município", "municipio", "cidade");
         col("colonia", "Colônia", "colonia", "colonias");
         col("rgpNumero", "Nº RGP", "nrgp", "numerorgp", "rgp", "registrorgp");
@@ -101,6 +101,25 @@ public class PlanilhaService {
         col("govNivel", "Conta gov.br", "contagovbr", "govbr", "nivelgovbr", "gov");
         col("etapa", "Etapa", "etapa", "situacao", "status");
         col("protocolo", "Protocolo", "protocolo");
+        // Campos do cadastro completo. Ficam depois dos antigos para que "rg" não "roube" colunas de RGP.
+        col("sexo", "Sexo", "sexo", "genero");
+        col("rg", "RG", "rg", "identidade");
+        col("orgaoEmissor", "Órgão emissor", "orgaoemissor", "orgaoexpedidor", "emissor");
+        col("dataExpedicao", "Data da expedição", "dataexpedicao", "dataemissao", "expedicao");
+        col("nomePai", "Nome do pai", "nomepai", "pai");
+        col("nomeMae", "Nome da mãe", "nomemae", "mae");
+        col("estadoCivil", "Estado civil", "estadocivil", "statuscivil");
+        col("estadoOrigem", "Estado de origem", "estadoorigem", "ufnascimento", "naturalidadeuf");
+        col("cidadeOrigem", "Cidade de origem", "cidadeorigem", "naturalidade");
+        col("tituloEleitor", "Título de eleitor", "tituloeleitor", "tituloeleitoral", "titulo");
+        col("inscricaoNumero", "Nº da inscrição", "numeroinscricao", "numeracaoinscricao", "inscricao");
+        col("dataAfiliacao", "Data da afiliação", "dataafiliacao", "afiliacao");
+        col("cep", "CEP", "cep");
+        col("logradouro", "Logradouro", "logradouro", "rua");
+        col("numero", "Número", "numero", "num");
+        col("complemento", "Complemento", "complemento");
+        col("bairro", "Bairro", "bairro");
+        col("uf", "UF", "uf", "siglauf");
     }
 
     private static void col(String campo, String rotulo, String... nomes) {
@@ -134,16 +153,23 @@ public class PlanilhaService {
         return switch (lista) {
             case "clientes" -> new Tabela(List.of("Nome", "CPF", "NIT", "Nascimento", "Telefone", "Endereço", "Município", "Colônia",
                 "Nº RGP", "RGP desde", "Validade RGP", "Espécie", "Validade procuração e-CAC", "Conta gov.br", "Etapa", "Protocolo",
-                "Requisitos atendidos", "Pendências para requerer"),
+                "Requisitos atendidos", "Pendências para requerer", "Entrevista", "Sexo", "RG", "Órgão emissor",
+                "Data da expedição", "Nome do pai", "Nome da mãe", "Estado civil", "Estado de origem", "Cidade de origem",
+                "Título de eleitor", "Nº da inscrição", "Data da afiliação", "CEP", "Logradouro", "Número", "Complemento",
+                "Bairro", "UF"),
                 todos.stream().map(a -> {
                     ClienteDados c = a.cliente();
+                    ClienteDados.Pessoal p = c.pessoal();
                     return lista(c.nome(), Cpf.formatar(c.cpf()), c.nit(), Datas.br(c.nascimento()), c.telefone(), c.endereco(),
                         c.municipio(), c.colonia(), c.rgpNumero(), c.rgpDesde(), Datas.br(c.rgpValidade()), c.especie(),
                         Datas.br(c.procuracaoValidade()), c.govNivel(), a.etapaNome(), c.protocolo(),
-                        a.requisitosOk() + "/" + Requisito.values().length, String.join("; ", a.bloqueios()));
+                        a.requisitosOk() + "/" + Requisito.values().length, String.join("; ", a.bloqueios()),
+                        c.entrevista().getNome(), p.sexo(), p.rg(), p.orgaoEmissor(), Datas.br(p.dataExpedicao()), p.nomePai(),
+                        p.nomeMae(), p.estadoCivil(), p.estadoOrigem(), p.cidadeOrigem(), p.tituloEleitor(), p.inscricaoNumero(),
+                        Datas.br(p.dataAfiliacao()), p.cep(), p.logradouro(), p.numero(), p.complemento(), p.bairro(), p.uf());
                 }).toList(), Set.of());
             case "dae" -> {
-                List<String> comps = Datas.competenciasAte(hoje.data(), 6);
+                List<String> comps = Datas.competenciasDae(hoje.data());
                 String ult = comps.get(comps.size() - 1);
                 List<String> cab = new ArrayList<>(List.of("Nome", "CPF", "Procuração e-CAC"));
                 comps.forEach(x -> cab.add(Datas.competenciaLabel(x)));
@@ -282,9 +308,14 @@ public class PlanilhaService {
         try (XSSFWorkbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sh = wb.createSheet("Clientes");
             String[] cab = {"Nome", "CPF", "NIT", "Nascimento", "Telefone", "Endereço", "Município", "Colônia", "Nº RGP",
-                "RGP desde", "Validade RGP", "Espécie", "Validade procuração", "Conta gov.br", "Etapa", "Protocolo"};
-            String[] ex = {"Exemplo da Silva", "529.982.247-25", "000.00000.00-0", "01/01/1980", "(98) 90000-0000", "Rua da Praia, 1",
-                "Raposa", "Colônia Z-53", "MA-000000", "01/2020", "31/12/2027", "Caranguejo", "31/12/2027", "Prata", "Documentação", ""};
+                "RGP desde", "Validade RGP", "Espécie", "Validade procuração", "Conta gov.br", "Etapa", "Protocolo",
+                "Sexo", "RG", "Órgão emissor", "Data da expedição", "Nome do pai", "Nome da mãe", "Estado civil",
+                "Estado de origem", "Cidade de origem", "Título de eleitor", "Nº da inscrição", "Data da afiliação", "CEP",
+                "Logradouro", "Número", "Complemento", "Bairro", "UF"};
+            String[] ex = {"Exemplo da Silva", "529.982.247-25", "000.00000.00-0", "01/01/1980", "(98) 90000-0000", "",
+                "Raposa", "Colônia Z-53", "MA-000000", "01/2020", "31/12/2027", "Caranguejo", "31/12/2027", "Prata", "Documentação", "",
+                "Masculino", "1234567", "SSP", "10/05/2005", "José da Silva", "Maria da Silva", "Solteiro", "MA", "Raposa",
+                "123456789012", "0001", "15/03/2019", "65138000", "Rua da Praia", "1", "", "Centro", "MA"};
             CellStyle texto = wb.createCellStyle();
             texto.setDataFormat(wb.createDataFormat().getFormat("@"));
             Row r0 = sh.createRow(0);
@@ -437,7 +468,34 @@ public class PlanilhaService {
         String gov = normalizar(d.get("govNivel"));
         if (vazio(c.getGovNivel()) && Set.of("bronze", "prata", "ouro").contains(gov)) { c.setGovNivel(gov); feitos.add("Conta gov.br"); }
         if (vazio(c.getProtocolo()) && !vazio(d.get("protocolo"))) { c.setProtocolo(d.get("protocolo")); feitos.add("Protocolo"); }
+        if (vazio(c.getSexo()) && !vazio(d.get("sexo"))) { c.setSexo(d.get("sexo")); feitos.add("Sexo"); }
+        if (vazio(c.getRg()) && !vazio(d.get("rg"))) { c.setRg(d.get("rg")); feitos.add("RG"); }
+        if (vazio(c.getOrgaoEmissor()) && !vazio(d.get("orgaoEmissor"))) { c.setOrgaoEmissor(d.get("orgaoEmissor")); feitos.add("Órgão emissor"); }
+        if (c.getDataExpedicao() == null && Datas.ler(d.get("dataExpedicao")) != null) { c.setDataExpedicao(Datas.ler(d.get("dataExpedicao"))); feitos.add("Data da expedição"); }
+        if (vazio(c.getNomePai()) && !vazio(d.get("nomePai"))) { c.setNomePai(d.get("nomePai")); feitos.add("Nome do pai"); }
+        if (vazio(c.getNomeMae()) && !vazio(d.get("nomeMae"))) { c.setNomeMae(d.get("nomeMae")); feitos.add("Nome da mãe"); }
+        if (vazio(c.getEstadoCivil()) && !vazio(d.get("estadoCivil"))) { c.setEstadoCivil(d.get("estadoCivil")); feitos.add("Estado civil"); }
+        String ufOrigem = siglaUf(d.get("estadoOrigem"));
+        if (vazio(c.getEstadoOrigem()) && ufOrigem != null) { c.setEstadoOrigem(ufOrigem); feitos.add("Estado de origem"); }
+        if (vazio(c.getCidadeOrigem()) && !vazio(d.get("cidadeOrigem"))) { c.setCidadeOrigem(d.get("cidadeOrigem")); feitos.add("Cidade de origem"); }
+        if (vazio(c.getTituloEleitor()) && !vazio(d.get("tituloEleitor"))) { c.setTituloEleitor(d.get("tituloEleitor")); feitos.add("Título de eleitor"); }
+        if (vazio(c.getInscricaoNumero()) && !vazio(d.get("inscricaoNumero"))) { c.setInscricaoNumero(d.get("inscricaoNumero")); feitos.add("Nº da inscrição"); }
+        if (c.getDataAfiliacao() == null && Datas.ler(d.get("dataAfiliacao")) != null) { c.setDataAfiliacao(Datas.ler(d.get("dataAfiliacao"))); feitos.add("Data da afiliação"); }
+        String cep = d.getOrDefault("cep", "").replaceAll("\\D", "");
+        if (vazio(c.getCep()) && cep.length() == 8) { c.setCep(cep); feitos.add("CEP"); }
+        if (vazio(c.getLogradouro()) && !vazio(d.get("logradouro"))) { c.setLogradouro(d.get("logradouro")); feitos.add("Logradouro"); }
+        if (vazio(c.getNumero()) && !vazio(d.get("numero"))) { c.setNumero(d.get("numero")); feitos.add("Número"); }
+        if (vazio(c.getComplemento()) && !vazio(d.get("complemento"))) { c.setComplemento(d.get("complemento")); feitos.add("Complemento"); }
+        if (vazio(c.getBairro()) && !vazio(d.get("bairro"))) { c.setBairro(d.get("bairro")); feitos.add("Bairro"); }
+        String uf = siglaUf(d.get("uf"));
+        if (vazio(c.getUf()) && uf != null) { c.setUf(uf); feitos.add("UF"); }
         return feitos;
+    }
+
+    private static String siglaUf(String txt) {
+        if (vazio(txt)) return null;
+        String u = txt.trim().toUpperCase(Locale.ROOT);
+        return u.matches("[A-Z]{2}") ? u : null;
     }
 
     static Etapa etapa(String txt) {

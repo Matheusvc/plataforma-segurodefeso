@@ -34,6 +34,7 @@ import br.com.segurodefeso.dominio.ClienteDados;
 import br.com.segurodefeso.dominio.ConfigValores;
 import br.com.segurodefeso.dominio.Cpf;
 import br.com.segurodefeso.dominio.Datas;
+import br.com.segurodefeso.dominio.Entrevista;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Requisito;
 import br.com.segurodefeso.dominio.Telefone;
@@ -48,6 +49,7 @@ import br.com.segurodefeso.servico.ArquivoService;
 import br.com.segurodefeso.servico.ClienteService;
 import br.com.segurodefeso.servico.ConfigService;
 import br.com.segurodefeso.servico.NaoEncontradoException;
+import br.com.segurodefeso.servico.RegraException;
 import br.com.segurodefeso.servico.UsuarioAtual;
 
 @RestController
@@ -106,7 +108,45 @@ public class ClienteController {
     @PostMapping("/clientes")
     public Map<String, Object> criar(@RequestBody ClienteService.ClienteForm form) {
         Cliente c = servico.criar(form, atual.id());
-        return Map.of("id", c.getId(), "mensagem", "Cliente cadastrado. Agora responda os requisitos e anexe os documentos.");
+        return Map.of("id", c.getId(), "mensagem", "Cliente cadastrado. Anexe os documentos e confirme a entrevista.");
+    }
+
+    public record EntrevistaReq(String situacao) {
+    }
+
+    /** Lista enxuta para a tela Entrevistas. */
+    @GetMapping("/entrevistas")
+    public List<Map<String, Object>> entrevistas() {
+        return servico.carregar(false).stream().map(a -> {
+            ClienteDados c = a.cliente();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", c.id());
+            m.put("nome", c.nome());
+            m.put("municipio", c.municipio());
+            m.put("colonia", c.colonia());
+            m.put("etapa", a.etapaNome());
+            m.put("etapaCor", a.etapaCor());
+            m.put("entrevista", c.entrevista());
+            return m;
+        }).toList();
+    }
+
+    @PutMapping("/clientes/{id}/entrevista")
+    public Map<String, String> entrevista(@PathVariable Long id, @RequestBody EntrevistaReq req) {
+        Entrevista nova;
+        try {
+            nova = Entrevista.valueOf(req.situacao());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new RegraException("Situação da entrevista inválida.");
+        }
+        servico.alterarEntrevista(id, nova, atual.id());
+        return Map.of("mensagem", "Entrevista: " + nova.getNome() + ".");
+    }
+
+    @GetMapping("/clientes/{id}/senha-gov")
+    @PreAuthorize("hasAnyRole('ADMIN','ADVOGADO')")
+    public Map<String, String> senhaGov(@PathVariable Long id) {
+        return Map.of("senha", servico.revelarSenhaGov(id, atual.id()));
     }
 
     /** Ficha completa: análise + documentos + linha do tempo + DAE dos últimos 12 meses + honorários recebidos. */
@@ -117,7 +157,7 @@ public class ClienteController {
         usuarios.findAll().forEach(u -> nomes.put(u.getId(), u.getNome()));
         ConfigValores cfg = config.valores();
         List<Map<String, Object>> dae = new ArrayList<>();
-        List<String> comps = new ArrayList<>(Datas.competenciasAte(hoje.data(), 12));
+        List<String> comps = new ArrayList<>(Datas.competenciasDae(hoje.data()));
         java.util.Collections.reverse(comps);
         for (String comp : comps) {
             ClienteDados.DaeInfo d = a.cliente().daes().get(comp);

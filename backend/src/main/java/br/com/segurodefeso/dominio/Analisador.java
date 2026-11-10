@@ -42,23 +42,23 @@ public final class Analisador {
         boolean rgpVencido = rgpDias != null && rgpDias < 0;
 
         // DAE
+        // Só quem tem entrevista confirmada entra no DAE; competência sem lançamento (PAGO/DECLARADO) está em aberto.
         Map<String, ClienteDados.DaeInfo> daes = c.daes() == null ? Map.of() : c.daes();
+        boolean noDae = c.entrevista() == Entrevista.CONFIRMADO;
         List<Analise.DaeAberto> vencidos = new ArrayList<>();
         List<Analise.DaeAberto> abertos = new ArrayList<>();
-        daes.forEach((comp, d) -> {
-            if (d.status() != StatusDae.PAGO) {
-                LocalDate venc = Datas.vencimentoDae(comp, cfg.diaVencimentoDae());
-                long n = Datas.dias(venc, hoje);
-                Analise.DaeAberto item = new Analise.DaeAberto(comp, Datas.competenciaLabel(comp), d.status(), venc, n);
-                (n < 0 ? vencidos : abertos).add(item);
-            }
-        });
-        vencidos.sort(Comparator.comparing(Analise.DaeAberto::competencia));
-        abertos.sort(Comparator.comparing(Analise.DaeAberto::competencia));
         List<Analise.DaeMes> ultimos = new ArrayList<>();
-        for (String comp : Datas.competenciasAte(hoje, 6)) {
-            ClienteDados.DaeInfo d = daes.get(comp);
-            ultimos.add(new Analise.DaeMes(comp, Datas.competenciaLabel(comp), d == null ? null : d.status()));
+        if (noDae) {
+            for (String comp : Datas.competenciasDae(hoje)) {
+                ClienteDados.DaeInfo d = daes.get(comp);
+                ultimos.add(new Analise.DaeMes(comp, Datas.competenciaLabel(comp), d == null ? null : d.status()));
+                if (d == null) {
+                    LocalDate venc = Datas.vencimentoDae(comp, cfg.diaVencimentoDae());
+                    long n = Datas.dias(venc, hoje);
+                    Analise.DaeAberto item = new Analise.DaeAberto(comp, Datas.competenciaLabel(comp), null, venc, n);
+                    (n < 0 ? vencidos : abertos).add(item);
+                }
+            }
         }
 
         // bloqueios para requerer

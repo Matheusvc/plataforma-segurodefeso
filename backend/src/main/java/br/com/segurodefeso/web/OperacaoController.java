@@ -28,6 +28,7 @@ import br.com.segurodefeso.dominio.ConfigValores;
 import br.com.segurodefeso.dominio.Cpf;
 import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Dinheiro;
+import br.com.segurodefeso.dominio.Entrevista;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.FilaDoDia;
 import br.com.segurodefeso.dominio.Mensagens;
@@ -54,7 +55,7 @@ import br.com.segurodefeso.servico.UsuarioAtual;
 @RequestMapping("/api")
 public class OperacaoController {
 
-    public record TriagemReq(Map<String, Boolean> respostas, String nome, String cpf, String telefone) {
+    public record TriagemReq(Map<String, Boolean> respostas) {
     }
 
     public record DaeItem(Long clienteId, String venda, String status) {
@@ -97,10 +98,8 @@ public class OperacaoController {
         List<FilaDoDia.Item> fila = FilaDoDia.calcular(todos, h);
         Map<Etapa, Long> cont = contagem(todos);
         String comp = Datas.competenciasAte(h, 1).get(0);
-        long daeAberto = todos.stream().filter(a -> {
-            ClienteDados.DaeInfo d = a.cliente().daes().get(comp);
-            return d != null && d.status() == StatusDae.PENDENTE;
-        }).count();
+        long daeAberto = todos.stream().filter(a -> a.cliente().entrevista() == Entrevista.CONFIRMADO
+            && a.cliente().daes().get(comp) == null).count();
         LocalDate exig = todos.stream().filter(a -> a.cliente().etapa() == Etapa.EXIGENCIA && a.cliente().prazoData() != null)
             .map(a -> a.cliente().prazoData()).sorted().findFirst().orElse(null);
         List<Map<String, Object>> kpis = new ArrayList<>();
@@ -148,45 +147,14 @@ public class OperacaoController {
         return Triagem.avaliar(respostas(req.respostas()));
     }
 
-    @PostMapping("/triagem/cadastrar")
-    @Transactional
-    public Map<String, Object> cadastrar(@RequestBody TriagemReq req) {
-        String nome = req.nome() == null ? "" : req.nome().trim();
-        String cpf = Cpf.digitos(req.cpf());
-        if (nome.isEmpty()) throw new RegraException("Informe o nome.");
-        if (!Cpf.valido(cpf)) throw new RegraException("CPF inválido.");
-        if (clienteRepo.findByCpf(cpf).isPresent()) throw new RegraException("Já existe cliente com este CPF.");
-        Map<Requisito, Boolean> r = respostas(req.respostas());
-        Triagem.Resultado res = Triagem.avaliar(r);
-        Cliente c = new Cliente();
-        c.setNome(nome);
-        c.setCpf(cpf);
-        c.setTelefone(req.telefone() == null || req.telefone().isBlank() ? null : req.telefone().trim());
-        c.setEtapa(Etapa.DOCUMENTACAO);
-        c.setParcelasTotal(config.valores().parcelasPadrao());
-        c.setAtivo(true);
-        c.setCriadoEm(hoje.agora());
-        c.setAtualizadoEm(hoje.agora());
-        c = clienteRepo.save(c);
-        for (Requisito q : Requisito.values()) {
-            RequisitoCliente rc = new RequisitoCliente();
-            rc.setClienteId(c.getId());
-            rc.setChave(q);
-            rc.setAtende(r.get(q));
-            requisitos.save(rc);
-        }
-        eventos.registrar(c.getId(), atual.id(), "triagem", "Triagem feita no atendimento: " + res.titulo());
-        return Map.of("id", c.getId(), "mensagem", "Cliente cadastrado com o resultado da triagem. Complete os dados do cadastro.");
-    }
-
     // ================================================================== DAE
     @GetMapping("/dae")
     public Map<String, Object> dae(@RequestParam(required = false) String competencia) {
-        List<String> comps = Datas.competenciasAte(hoje.data(), 12);
+        List<String> comps = Datas.competenciasDae(hoje.data());
         String comp = competencia != null && comps.contains(competencia) ? competencia : comps.get(comps.size() - 1);
         ConfigValores cfg = config.valores();
         List<Analise> lista = clientes.carregar(false).stream()
-            .filter(a -> a.cliente().etapa() != Etapa.DOCUMENTACAO || !a.cliente().daes().isEmpty()).toList();
+            .filter(a -> a.cliente().entrevista() == Entrevista.CONFIRMADO).toList();
         Map<String, Long> resumo = new LinkedHashMap<>();
         for (StatusDae s : StatusDae.values()) {
             resumo.put(s.name(), lista.stream().filter(a -> {
@@ -194,6 +162,7 @@ public class OperacaoController {
                 return d != null && d.status() == s;
             }).count());
         }
+        resumo.put("EM_ABERTO", lista.stream().filter(a -> a.cliente().daes().get(comp) == null).count());
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("competencias", comps);
         m.put("competencia", comp);
@@ -207,7 +176,7 @@ public class OperacaoController {
     @PostMapping("/dae")
     @Transactional
     public Map<String, String> salvarDae(@RequestBody DaeReq req) {
-        List<String> comps = Datas.competenciasAte(hoje.data(), 12);
+        List<String> comps = Datas.competenciasDae(hoje.data());
         if (req.competencia() == null || !comps.contains(req.competencia())) {
             throw new RegraException("Competência inválida.");
         }
@@ -218,7 +187,14 @@ public class OperacaoController {
             StatusDae st = item.status() == null || item.status().isBlank() ? null : StatusDae.valueOf(item.status());
             Dae atualDae = daes.findByClienteIdAndCompetencia(item.clienteId(), req.competencia()).orElse(null);
             if (venda == null && st == null && atualDae == null) continue;
-            if (st == null) st = atualDae != null ? atualDae.getStatus() : StatusDae.PENDENTE;
+            Cliente cli = clienteRepo.findById(item.clienteId()).orElseThrow(() -> new RegraException("Cliente não encontrado."));
+            if (cli.getEntrevista() != Entrevista.CONFIRMADO) {
+                throw new RegraException("DAE só para clientes com entrevista confirmada: " + cli.getNome() + ".");
+            }
+            if (st == null && atualDae == null) {
+                throw new RegraException("Escolha o status (Pago ou Declarado) de " + cli.getNome() + ".");
+            }
+            if (st == null) st = atualDae.getStatus();
             if (atualDae != null && st == atualDae.getStatus() && iguais(venda, atualDae.getValorVenda())) continue;
             Dae d = atualDae != null ? atualDae : new Dae();
             d.setClienteId(item.clienteId());

@@ -24,10 +24,15 @@ class RegrasTest {
 
     static ClienteDados cliente(Etapa etapa, String gov, Map<Requisito, Boolean> reqs, java.util.Set<TipoDocumento> docs,
                                 Map<String, ClienteDados.DaeInfo> daes, int lib, int tot, BigDecimal recebido) {
+        return cliente(etapa, gov, reqs, docs, daes, lib, tot, recebido, Entrevista.A_CONFIRMAR);
+    }
+
+    static ClienteDados cliente(Etapa etapa, String gov, Map<Requisito, Boolean> reqs, java.util.Set<TipoDocumento> docs,
+                                Map<String, ClienteDados.DaeInfo> daes, int lib, int tot, BigDecimal recebido, Entrevista entrevista) {
         return new ClienteDados(1L, "Joana Pereira Matos", "52998224725", null, null, "(98) 98888-7777", null, "Raposa",
                 "Colônia Z-53", "MA-1", "05/2019", LocalDate.of(2027, 12, 31), null, LocalDate.of(2026, 12, 2), gov, null,
                 etapa, "2026/000999", null, "comprovante de residência", LocalDate.of(2026, 11, 19), "vínculo no CNIS", null,
-                tot, lib, null, null, true, reqs, docs, daes, recebido);
+                tot, lib, null, null, true, reqs, docs, daes, recebido, entrevista, ClienteDados.Pessoal.vazio());
     }
 
     static Map<Requisito, Boolean> todosSim() {
@@ -66,15 +71,35 @@ class RegrasTest {
         Map<Requisito, Boolean> reqs = todosSim();
         reqs.put(Requisito.SEM_VINCULO, false);
         reqs.remove(Requisito.GOV);
-        Map<String, ClienteDados.DaeInfo> daes = new HashMap<>();
-        daes.put("2026-09", new ClienteDados.DaeInfo(StatusDae.PENDENTE, null, null));   // venceu em 20/10
-        Analise a = Analisador.analisar(cliente(Etapa.DOCUMENTACAO, "bronze", reqs, EnumSet.of(TipoDocumento.RG), daes, 0, 4, null), CFG, HOJE);
+        Analise a = Analisador.analisar(cliente(Etapa.DOCUMENTACAO, "bronze", reqs, EnumSet.of(TipoDocumento.RG), Map.of(), 0, 4, null), CFG, HOJE);
         assertFalse(a.apto());
         assertTrue(a.essencialFalha());
         assertEquals(1, a.requisitosSemResposta());
         assertEquals(6, a.documentosPendentes().size());
-        assertEquals(1, a.daeVencidos().size());
+        assertTrue(a.daeVencidos().isEmpty());          // sem entrevista confirmada não há DAE
         assertTrue(a.bloqueios().contains("conta gov.br sem nível prata/ouro"));
+    }
+
+    @Test
+    void daeComecaEmMaioEsoParaEntrevistaConfirmada() {
+        assertEquals(List.of("2026-05", "2026-06", "2026-07", "2026-08", "2026-09", "2026-10", "2026-11"),
+                Datas.competenciasDae(HOJE));
+        Map<String, ClienteDados.DaeInfo> daes = new HashMap<>();
+        for (String comp : List.of("2026-05", "2026-06", "2026-07")) {
+            daes.put(comp, new ClienteDados.DaeInfo(StatusDae.PAGO, null, null));
+        }
+        daes.put("2026-08", new ClienteDados.DaeInfo(StatusDae.DECLARADO, null, null));
+        Analise a = Analisador.analisar(cliente(Etapa.DEFERIDO, "prata", todosSim(), EnumSet.noneOf(TipoDocumento.class),
+                daes, 0, 4, null, Entrevista.CONFIRMADO), CFG, HOJE);
+        assertEquals(1, a.daeVencidos().size());        // setembro venceu em 20/10
+        assertEquals("2026-09", a.daeVencidos().get(0).competencia());
+        assertEquals(2, a.daeAbertos().size());         // outubro e novembro ainda no prazo
+        assertEquals(7, a.daeUltimosMeses().size());
+        Analise nao = Analisador.analisar(cliente(Etapa.DEFERIDO, "prata", todosSim(), EnumSet.noneOf(TipoDocumento.class),
+                Map.of(), 0, 4, null, Entrevista.NAO), CFG, HOJE);
+        assertTrue(nao.daeVencidos().isEmpty());
+        assertTrue(nao.daeAbertos().isEmpty());
+        Prazos.calcular(List.of(a), List.of(), CFG, HOJE).forEach(p -> assertFalse(p.tipo().equals("DAE")));
     }
 
     @Test

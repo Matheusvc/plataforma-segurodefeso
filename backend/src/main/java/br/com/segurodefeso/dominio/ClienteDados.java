@@ -43,8 +43,23 @@ public record ClienteDados(
         Set<TipoDocumento> documentos,
         /* "AAAA-MM" -> lançamento do DAE */
         Map<String, DaeInfo> daes,
-        BigDecimal honorariosRecebidos) {
+        BigDecimal honorariosRecebidos,
+        Entrevista entrevista,
+        Pessoal pessoal) {
 
     public record DaeInfo(StatusDae status, BigDecimal venda, BigDecimal valor) {
+    }
+
+    /** Dados cadastrais complementares. A senha gov nunca viaja aqui: só se há uma cadastrada. */
+    public record Pessoal(String sexo, String rg, String orgaoEmissor, LocalDate dataExpedicao, String nomePai,
+                          String nomeMae, String estadoCivil, String estadoOrigem, String cidadeOrigem,
+                          String tituloEleitor, String inscricaoNumero, LocalDate dataAfiliacao, String cep,
+                          String logradouro, String numero, String complemento, String bairro, String uf,
+                          Long auxiliarId, boolean senhaGovCadastrada) {
+
+        public static Pessoal vazio() {
+            return new Pessoal(null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, false);
+        }
     }
 }

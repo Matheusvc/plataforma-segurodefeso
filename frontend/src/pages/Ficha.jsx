@@ -22,6 +22,8 @@ export default function Ficha() {
   const c = a.cliente
   const docNome = Object.fromEntries(meta.documentos.map((d) => [d.id, d.nome]))
   const statusDae = Object.fromEntries(meta.statusDae.map((s) => [s.id, s]))
+  const entrevista = meta.entrevistas.find((e) => e.id === c.entrevista) || { nome: '—', cor: 'neutro' }
+  const daeAtivo = c.entrevista === 'CONFIRMADO'
 
   async function arquivar() {
     if (!window.confirm(c.ativo ? 'Arquivar este cliente?' : 'Reativar este cliente?')) return
@@ -41,7 +43,9 @@ export default function Ficha() {
       </Titulo>
       <p className="-mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
         CPF {cpf(c.cpf)} · {c.municipio || 'município não informado'}{c.colonia && ` · ${c.colonia}`}
-        <Chip cor={a.etapaCor}>{a.etapaNome}</Chip>{!c.ativo && <Chip>Arquivado</Chip>}
+        <Chip cor={a.etapaCor}>{a.etapaNome}</Chip>
+        <Link to="/entrevistas" title="Alterar na tela Entrevistas"><Chip cor={entrevista.cor}>Entrevista: {entrevista.nome}</Chip></Link>
+        {!c.ativo && <Chip>Arquivado</Chip>}
       </p>
 
       {(c.etapa === 'DOCUMENTACAO' || c.etapa === 'A_REQUERER') && (a.apto
@@ -63,6 +67,7 @@ export default function Ficha() {
         {aba === 'documentos' && <Documentos a={a} id={id} docs={dados.documentos} dae={dados.dae} docNome={docNome} recarregar={recarregar} />}
         {aba === 'dae' && (
           <div className="flex flex-col gap-3">
+            {!daeAtivo && <Alerta cor="aviso">DAE só para clientes com entrevista confirmada. Confirme na tela <Link to="/entrevistas" className="underline">Entrevistas</Link>.</Alerta>}
             <p className="text-xs text-slate-500">Lance vendas e situação na tela <Link to="/dae" className="text-marca-700 underline">DAE (eSocial)</Link>. Ao anexar o comprovante (aba Documentos), a guia é marcada como paga.</p>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] border-collapse">
@@ -72,7 +77,7 @@ export default function Ficha() {
                     <tr key={d.competencia}>
                       <Td>{d.label}</Td><Td>{d.venda != null ? brl(d.venda) : '—'}</Td><Td>{d.valor != null ? brl(d.valor) : '—'}</Td>
                       <Td>{br(d.vencimento)}</Td>
-                      <Td>{d.status ? <Chip cor={statusDae[d.status].cor}>{statusDae[d.status].nome}</Chip> : <span className="text-xs text-slate-500">sem lançamento</span>}</Td>
+                      <Td>{d.status ? <Chip cor={statusDae[d.status].cor}>{statusDae[d.status].nome}</Chip> : <span className="text-xs text-slate-500">{daeAtivo ? 'em aberto' : '—'}</span>}</Td>
                     </tr>
                   ))}
                 </tbody>
@@ -100,18 +105,59 @@ export default function Ficha() {
 
 function Resumo({ a }) {
   const c = a.cliente
-  const campos = [
-    ['CPF', cpf(c.cpf)], ['NIT', c.nit || '—'], ['Nascimento', br(c.nascimento) || '—'], ['Telefone', c.telefone || '—'],
-    ['Endereço', c.endereco || '—'], ['Município', c.municipio || '—'], ['Colônia', c.colonia || '—'], ['Espécie', c.especie || '—'],
-    ['Nº RGP', c.rgpNumero || '—'], ['RGP desde', c.rgpDesde || '—'], ['Validade do RGP', br(c.rgpValidade) || '—'],
-    ['Procuração e-CAC', br(c.procuracaoValidade) || 'sem procuração'], ['Conta gov.br', c.govNivel || 'não informado'],
-    ['Protocolo', c.protocolo || '—'], ['Última conferência', br(c.ultimaConferencia) || 'nunca'],
+  const p = c.pessoal
+  const { gestor } = useAuth()
+  const { dados: auxiliares } = useDados('/auxiliares')
+  const { executar, ocupado } = useAcao()
+  const [senha, setSenha] = useState(null)
+  const aux = (auxiliares || []).find((x) => x.id === p.auxiliarId)
+  const endereco = [[p.logradouro, p.numero].filter(Boolean).join(', '), p.complemento, p.bairro,
+    [c.municipio, p.uf].filter(Boolean).join('/'), p.cep && `CEP ${p.cep}`].filter(Boolean).join(' · ') || c.endereco || '—'
+  const grupos = [
+    ['Dados pessoais', [
+      ['CPF', cpf(c.cpf)], ['Nascimento', br(c.nascimento) || '—'], ['Sexo', p.sexo || '—'], ['Estado civil', p.estadoCivil || '—'],
+      ['Nome do pai', p.nomePai || '—'], ['Nome da mãe', p.nomeMae || '—'],
+      ['Origem', [p.cidadeOrigem, p.estadoOrigem].filter(Boolean).join('/') || '—'], ['NIT', c.nit || '—'],
+    ]],
+    ['Documentos', [
+      ['RG', p.rg || '—'], ['Órgão emissor', p.orgaoEmissor || '—'], ['Expedição', br(p.dataExpedicao) || '—'],
+      ['Título de eleitor', p.tituloEleitor || '—'],
+    ]],
+    ['Pesca e RGP', [
+      ['Nº RGP', c.rgpNumero || '—'], ['RGP desde', c.rgpDesde || '—'], ['Validade do RGP', br(c.rgpValidade) || '—'],
+      ['Espécie', c.especie || '—'], ['Procuração e-CAC', br(c.procuracaoValidade) || 'sem procuração'],
+    ]],
+    ['Filiação à colônia', [
+      ['Colônia', c.colonia || '—'], ['Nº da inscrição', p.inscricaoNumero || '—'], ['Data da afiliação', br(p.dataAfiliacao) || '—'],
+    ]],
+    ['Contato e endereço', [['Telefone', c.telefone || '—'], ['Endereço', endereco]]],
+    ['Acompanhamento', [
+      ['Auxiliar jurídico', aux ? aux.nome : 'não definido'], ['Protocolo', c.protocolo || '—'],
+      ['Última conferência', br(c.ultimaConferencia) || 'nunca'], ['Conta gov.br', c.govNivel || 'não informado'],
+    ]],
   ]
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-3">
-        {campos.map(([k, v]) => <div key={k}><div className="text-xs text-slate-500">{k}</div><div className="font-semibold">{v}</div></div>)}
-      </div>
+      {grupos.map(([titulo, campos]) => (
+        <section key={titulo} className="flex flex-col gap-2">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-marca-900">{titulo}</h3>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-3">
+            {campos.map(([k, v]) => <div key={k}><div className="text-xs text-slate-500">{k}</div><div className="font-semibold">{v}</div></div>)}
+          </div>
+        </section>
+      ))}
+      {p.senhaGovCadastrada && (
+        <Item>
+          <div className="flex-1">
+            <div className="font-semibold">Senha gov.br</div>
+            <div className="font-mono text-[13px] text-slate-600">{senha ?? '••••••••••'}</div>
+          </div>
+          {gestor && (senha === null
+            ? <Botao variante="neutro" pequeno disabled={ocupado}
+              onClick={() => executar(() => api(`/clientes/${c.id}/senha-gov`), (r) => setSenha(r.senha))}>Revelar (fica registrado)</Botao>
+            : <Botao variante="neutro" pequeno onClick={() => setSenha(null)}>Ocultar</Botao>)}
+        </Item>
+      )}
       <Item>
         <div>
           <div className="font-semibold">Situação do pedido</div>

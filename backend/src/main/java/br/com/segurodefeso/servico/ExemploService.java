@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import br.com.segurodefeso.config.Hoje;
 import br.com.segurodefeso.dominio.ConfigValores;
 import br.com.segurodefeso.dominio.Datas;
+import br.com.segurodefeso.dominio.Entrevista;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Requisito;
 import br.com.segurodefeso.dominio.StatusDae;
@@ -82,7 +83,7 @@ public class ExemploService {
     public int carregar() {
         ConfigValores cfg = config.valores();
         LocalDate h = hoje.data();
-        List<String> comps = Datas.competenciasAte(h, 6);
+        List<String> comps = Datas.competenciasDae(h);
         int criados = 0;
         for (int i = 0; i < EXEMPLOS.size(); i++) {
             Ex e = EXEMPLOS.get(i);
@@ -136,14 +137,16 @@ public class ExemploService {
                 d.setEnviadoEm(hoje.agora());
                 documentos.save(d);
             }
+            c.setEntrevista(e.dae().isEmpty() ? Entrevista.A_CONFIRMAR : Entrevista.CONFIRMADO);
+            clientes.save(c);
             for (int k = 0; k < e.dae().length() && k < comps.size(); k++) {
                 char s = e.dae().charAt(k);
                 StatusDae st = switch (s) {
                     case 'p' -> StatusDae.PAGO;
-                    case 'g' -> StatusDae.GERADO;
-                    case 'e' -> StatusDae.ENVIADO;
-                    default -> StatusDae.PENDENTE;
+                    case 'g', 'e' -> StatusDae.DECLARADO;
+                    default -> null;
                 };
+                if (st == null) continue;
                 BigDecimal venda = BigDecimal.valueOf(800 + i * 70L).setScale(2, RoundingMode.HALF_UP);
                 Dae d = new Dae();
                 d.setClienteId(c.getId());

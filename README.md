@@ -115,6 +115,7 @@ java -jar seguro-defeso-1.0.0.jar
 | `DATABASE_USER` / `DATABASE_PASSWORD` | `seguro` / `***` | credenciais do banco |
 | `UPLOAD_FOLDER` | `/var/seguro_defeso/uploads` | onde ficam os documentos anexados |
 | `COOKIE_SEGURO` | `true` | obrigatório atrás de HTTPS |
+| `APP_CRIPTO_CHAVE` | frase longa e secreta | criptografa a senha gov dos clientes (obrigatória em produção; não troque depois) |
 | `ADMIN_EMAIL` / `ADMIN_SENHA` | — | só na primeira execução; remova depois |
 | `PORT` | `8080` | porta do servidor |
 
@@ -144,6 +145,14 @@ cd backend
 
 - `RegrasTest` — regras de negócio (CPF, datas, DAE, bloqueios, honorários, prazos, fila, mensagens, triagem).
 - `FluxoApiTest` — fluxo pela API com banco H2 em memória (login, cadastro, status, prazos, honorários, permissões, Excel).
+- `EntrevistaDaeApiTest` — cadastro completo, entrevista, trava do DAE, senha gov protegida e auxiliares.
+
+## Fluxo de trabalho
+
+1. **Triagem** (Clientes → Novo cliente): responde os requisitos; só depois abre o cadastro completo.
+2. **Entrevistas**: marque cada cliente como Não, Confirmado ou A confirmar.
+3. **DAE**: lançamento manual desde maio de 2026, só para clientes com entrevista confirmada (status Declarado ou Pago;
+   competência sem lançamento conta como em aberto). O DAE não aparece em Prazos.
 
 ## 6. Onde mexer
 
@@ -174,7 +183,10 @@ cd backend
 - Papéis: Administrador (tudo), Advogado (tudo menos usuários/configurações), Equipe (sem honorários, relatórios e exclusões).
 - Documentos fora da pasta pública, só para usuários logados.
 - Registro de atividades: quem fez o quê, quando, em cada cliente.
-- **A senha gov.br e o código de SMS dos clientes nunca são guardados.**
+- A senha gov.br do cliente (opcional) é guardada **criptografada** (AES-GCM, chave em `APP_CRIPTO_CHAVE`), nunca aparece
+  em listas, planilhas ou logs, e só Administrador/Advogado podem revelá-la; cada consulta fica na linha do tempo.
+  Se a chave mudar, as senhas já salvas deixam de abrir: guarde a chave com o mesmo cuidado do backup do banco.
+- O código de SMS (verificação em duas etapas) dos clientes nunca é guardado.
 
 ## 9. Observações jurídicas
 

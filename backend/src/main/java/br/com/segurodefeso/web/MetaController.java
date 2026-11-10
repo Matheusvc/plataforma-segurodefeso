@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import br.com.segurodefeso.dominio.Entrevista;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Mensagens;
 import br.com.segurodefeso.dominio.Papel;
@@ -32,7 +33,8 @@ public class MetaController {
         m.put("documentos", Arrays.stream(TipoDocumento.values())
             .map(t -> new Item(t.name(), t.getNome(), null, null, t.isObrigatorio())).toList());
         m.put("etapas", Arrays.stream(Etapa.values()).map(e -> new Item(e.name(), e.getNome(), e.getCor(), null, false)).toList());
-        m.put("statusDae", Arrays.stream(StatusDae.values()).map(s -> new Item(s.name(), s.getNome(), s.getCor(), null, false)).toList());
+        m.put("entrevistas", Arrays.stream(Entrevista.values()).map(e -> new Item(e.name(), e.getNome(), e.getCor(), null, false)).toList());
+        m.put("statusDae",Arrays.stream(StatusDae.values()).map(s -> new Item(s.name(), s.getNome(), s.getCor(), null, false)).toList());
         m.put("papeis", Arrays.stream(Papel.values()).map(p -> new Item(p.name(), p.getNome(), null, null, false)).toList());
         m.put("modelos", Arrays.stream(Mensagens.Modelo.values()).map(x -> new Item(x.name(), x.getNome(), null, null, false)).toList());
         m.put("sites", List.of(

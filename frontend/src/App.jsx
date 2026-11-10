@@ -7,6 +7,8 @@ import Clientes from './pages/Clientes.jsx'
 import ClienteForm from './pages/ClienteForm.jsx'
 import Ficha from './pages/Ficha.jsx'
 import Triagem from './pages/Triagem.jsx'
+import Entrevistas from './pages/Entrevistas.jsx'
+import Auxiliares from './pages/Auxiliares.jsx'
 import Status from './pages/Status.jsx'
 import Requerimentos from './pages/Requerimentos.jsx'
 import Dae from './pages/Dae.jsx'
@@ -40,6 +42,8 @@ export default function App() {
         <Route path="/clientes/:id" element={<Ficha key={local.pathname} />} />
         <Route path="/clientes/:id/editar" element={<ClienteForm />} />
         <Route path="/triagem" element={<Triagem />} />
+        <Route path="/entrevistas" element={<Entrevistas />} />
+        <Route path="/auxiliares" element={<Auxiliares />} />
         <Route path="/status" element={<Status />} />
         <Route path="/requerimentos" element={<Requerimentos />} />
         <Route path="/dae" element={<Dae />} />

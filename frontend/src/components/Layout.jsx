@@ -29,6 +29,7 @@ export default function Layout({ children }) {
         </div>
         <Item to="/" fim>Início</Item>
         <Item to="/clientes">Clientes</Item>
+        <Item to="/entrevistas">Entrevistas</Item>
         <Item to="/requerimentos">Requerimentos</Item>
         <Item to="/dae">DAE (eSocial)</Item>
         <Item to="/prazos">Prazos</Item>
@@ -37,6 +38,7 @@ export default function Layout({ children }) {
         {gestor && <Item to="/honorarios">Honorários</Item>}
         {gestor && <Item to="/relatorios">Relatórios</Item>}
         <Item to="/planilhas">Planilhas</Item>
+        <Item to="/auxiliares">Auxiliares</Item>
         <Item to="/defesos">Defesos</Item>
         {admin && (
           <>

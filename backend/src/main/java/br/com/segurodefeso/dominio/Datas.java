@@ -74,6 +74,24 @@ public final class Datas {
         return out;
     }
 
+    /** Primeira competência controlada no DAE (maio de 2026). */
+    public static final String DAE_INICIO = "2026-05";
+
+    /** Competências de DAE: de maio até o mês de ref, da mais antiga para a mais recente (mínimo: o mês de ref). */
+    public static List<String> competenciasDae(LocalDate ref) {
+        YearMonth fim = YearMonth.from(ref);
+        YearMonth ym = YearMonth.parse(DAE_INICIO);
+        List<String> out = new ArrayList<>();
+        while (!ym.isAfter(fim)) {
+            out.add(ym.toString());
+            ym = ym.plusMonths(1);
+        }
+        if (out.isEmpty()) {
+            out.add(fim.toString());
+        }
+        return out;
+    }
+
     /** Vencimento estimado do DAE: dia X do mês seguinte à competência (o oficial é o da guia). */
     public static LocalDate vencimentoDae(String comp, int dia) {
         YearMonth seguinte = YearMonth.parse(comp).plusMonths(1);

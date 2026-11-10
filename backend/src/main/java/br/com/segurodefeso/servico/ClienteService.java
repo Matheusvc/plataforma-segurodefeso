@@ -21,6 +21,7 @@ import br.com.segurodefeso.dominio.ConfigValores;
 import br.com.segurodefeso.dominio.Cpf;
 import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Dinheiro;
+import br.com.segurodefeso.dominio.Entrevista;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Requisito;
 import br.com.segurodefeso.dominio.StatusDae;
@@ -30,6 +31,7 @@ import br.com.segurodefeso.entidade.Dae;
 import br.com.segurodefeso.entidade.Documento;
 import br.com.segurodefeso.entidade.Honorario;
 import br.com.segurodefeso.entidade.RequisitoCliente;
+import br.com.segurodefeso.repositorio.AuxiliarRepo;
 import br.com.segurodefeso.repositorio.ClienteRepo;
 import br.com.segurodefeso.repositorio.DaeRepo;
 import br.com.segurodefeso.repositorio.DocumentoRepo;
@@ -44,7 +46,12 @@ public class ClienteService {
     public record ClienteForm(String nome, String cpf, String nit, String nascimento, String telefone, String endereco,
                               String municipio, String colonia, String rgpNumero, String rgpDesde, String rgpValidade,
                               String especie, String procuracaoValidade, String govNivel, String honorariosPct,
-                              String observacoes) {
+                              String observacoes,
+                              String sexo, String rg, String orgaoEmissor, String dataExpedicao, String nomePai,
+                              String nomeMae, String estadoCivil, String estadoOrigem, String cidadeOrigem,
+                              String tituloEleitor, String senhaGov, String inscricaoNumero, String dataAfiliacao,
+                              String cep, String logradouro, String numero, String complemento, String bairro,
+                              String uf, Long auxiliarId, Map<String, Boolean> respostas) {
     }
 
     /** Respostas da tela Atualizar status. */
@@ -60,10 +67,15 @@ public class ClienteService {
     private final ConfigService config;
     private final EventoService eventos;
     private final ArquivoService arquivos;
+    private final AuxiliarRepo auxiliares;
+    private final SegredoService segredos;
     private final Hoje hoje;
 
     public ClienteService(ClienteRepo clientes, RequisitoRepo requisitos, DocumentoRepo documentos, DaeRepo daes,
-                          HonorarioRepo honorarios, ConfigService config, EventoService eventos, ArquivoService arquivos, Hoje hoje) {
+                          HonorarioRepo honorarios, ConfigService config, EventoService eventos, ArquivoService arquivos,
+                          AuxiliarRepo auxiliares, SegredoService segredos, Hoje hoje) {
+        this.auxiliares = auxiliares;
+        this.segredos = segredos;
         this.clientes = clientes;
         this.requisitos = requisitos;
         this.documentos = documentos;
@@ -131,7 +143,11 @@ public class ClienteService {
             c.getEspecie(), c.getProcuracaoValidade(), c.getGovNivel(), c.getHonorariosPct(), c.getEtapa(), c.getProtocolo(),
             c.getSituacao(), c.getExigenciaTexto(), c.getPrazoData(), c.getIndeferimentoMotivo(), c.getCienciaData(),
             c.getParcelasTotal(), c.getParcelasLiberadas(), c.getUltimaConferencia(), c.getObservacoes(), c.isAtivo(),
-            reqs, docs, d, recebido);
+            reqs, docs, d, recebido, c.getEntrevista(),
+            new ClienteDados.Pessoal(c.getSexo(), c.getRg(), c.getOrgaoEmissor(), c.getDataExpedicao(), c.getNomePai(),
+                c.getNomeMae(), c.getEstadoCivil(), c.getEstadoOrigem(), c.getCidadeOrigem(), c.getTituloEleitor(),
+                c.getInscricaoNumero(), c.getDataAfiliacao(), c.getCep(), c.getLogradouro(), c.getNumero(),
+                c.getComplemento(), c.getBairro(), c.getUf(), c.getAuxiliarId(), c.getSenhaGovCifrada() != null));
     }
 
     // ------------------------------------------------------------------ cadastro
@@ -144,9 +160,38 @@ public class ClienteService {
         c.setAtivo(true);
         c.setCriadoEm(hoje.agora());
         c.setAtualizadoEm(hoje.agora());
+        c.setEntrevista(Entrevista.A_CONFIRMAR);
         c = clientes.save(c);
         eventos.registrar(c.getId(), usuarioId, "cadastro", "Cliente cadastrado na plataforma");
+        if (f.respostas() != null && !f.respostas().isEmpty()) {
+            Map<Requisito, Boolean> r = new HashMap<>();
+            f.respostas().forEach((k, v) -> r.put(Requisito.valueOf(k), v));
+            salvarRequisitos(c.getId(), r, usuarioId);
+        }
         return c;
+    }
+
+    @Transactional
+    public void alterarEntrevista(Long id, Entrevista nova, Long usuarioId) {
+        Cliente c = buscar(id);
+        if (c.getEntrevista() == nova) {
+            return;
+        }
+        c.setEntrevista(nova);
+        c.setAtualizadoEm(hoje.agora());
+        clientes.save(c);
+        eventos.registrar(id, usuarioId, "entrevista", "Entrevista: " + nova.getNome());
+    }
+
+    /** Devolve a senha gov em texto. Cada leitura fica registrada na linha do tempo. */
+    @Transactional
+    public String revelarSenhaGov(Long id, Long usuarioId) {
+        Cliente c = buscar(id);
+        if (c.getSenhaGovCifrada() == null) {
+            throw new RegraException("Nenhuma senha gov cadastrada para este cliente.");
+        }
+        eventos.registrar(id, usuarioId, "acesso_senha_gov", "Senha gov consultada");
+        return segredos.decifrar(c.getSenhaGovCifrada());
     }
 
     @Transactional
@@ -187,8 +232,37 @@ public class ClienteService {
         if (gov != null && !Set.of("bronze", "prata", "ouro").contains(gov)) {
             gov = null;
         }
+        LocalDate expedicao = data(f.dataExpedicao(), "Data da expedição", erros);
+        LocalDate afiliacao = data(f.dataAfiliacao(), "Data da afiliação", erros);
+        String cep = f.cep() == null ? "" : f.cep().replaceAll("\\D", "");
+        if (!cep.isEmpty() && cep.length() != 8) erros.add("CEP deve ter 8 números.");
+        String uf = uf(f.uf(), "Estado do endereço", erros);
+        String ufOrigem = uf(f.estadoOrigem(), "Estado de origem", erros);
+        if (f.auxiliarId() != null && !auxiliares.existsById(f.auxiliarId())) erros.add("Auxiliar jurídico não encontrado.");
         if (!erros.isEmpty()) {
             throw new RegraException(String.join(" ", erros));
+        }
+        c.setSexo(limpar(f.sexo()));
+        c.setRg(limpar(f.rg()));
+        c.setOrgaoEmissor(limpar(f.orgaoEmissor()));
+        c.setDataExpedicao(expedicao);
+        c.setNomePai(limpar(f.nomePai()));
+        c.setNomeMae(limpar(f.nomeMae()));
+        c.setEstadoCivil(limpar(f.estadoCivil()));
+        c.setEstadoOrigem(ufOrigem);
+        c.setCidadeOrigem(limpar(f.cidadeOrigem()));
+        c.setTituloEleitor(limpar(f.tituloEleitor()));
+        c.setInscricaoNumero(limpar(f.inscricaoNumero()));
+        c.setDataAfiliacao(afiliacao);
+        c.setCep(cep.isEmpty() ? null : cep);
+        c.setLogradouro(limpar(f.logradouro()));
+        c.setNumero(limpar(f.numero()));
+        c.setComplemento(limpar(f.complemento()));
+        c.setBairro(limpar(f.bairro()));
+        c.setUf(uf);
+        c.setAuxiliarId(f.auxiliarId());
+        if (limpar(f.senhaGov()) != null) {
+            c.setSenhaGovCifrada(segredos.cifrar(f.senhaGov()));
         }
         c.setNome(nome);
         c.setCpf(cpf);
@@ -393,6 +467,18 @@ public class ClienteService {
     // ------------------------------------------------------------------ auxiliares
     static String limpar(String s) {
         return s == null || s.isBlank() ? null : s.trim();
+    }
+
+    private static String uf(String txt, String rotulo, List<String> erros) {
+        String u = limpar(txt);
+        if (u == null) {
+            return null;
+        }
+        u = u.toUpperCase();
+        if (!u.matches("[A-Z]{2}")) {
+            erros.add(rotulo + ": use a sigla com 2 letras (ex.: MA).");
+        }
+        return u;
     }
 
     private static LocalDate data(String txt, String rotulo, List<String> erros) {
