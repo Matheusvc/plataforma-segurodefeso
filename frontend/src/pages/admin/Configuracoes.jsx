@@ -26,7 +26,7 @@ export default function Configuracoes() {
   )
   return (
     <>
-      <Titulo titulo="Configurações" sub="Valores usados nos cálculos. Atualize o salário mínimo todo início de ano e confira a alíquota do DAE quando houver mudança na lei." />
+      <Titulo titulo="Parâmetros do sistema" sub="Valores usados nos cálculos. Atualize o salário mínimo todo início de ano e confira a alíquota do DAE quando houver mudança na lei." />
       <Card className="max-w-3xl">
         <form onSubmit={salvar} className="flex flex-col gap-4">
           <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5">

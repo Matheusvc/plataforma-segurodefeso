@@ -49,7 +49,7 @@ export function AuthProvider({ children }) {
   const admin = usuario && usuario.papel === 'ADMIN'
 
   return (
-    <AuthCtx.Provider value={{ usuario, meta, pronto, entrar, sair, gestor, admin }}>
+    <AuthCtx.Provider value={{ usuario, meta, pronto, entrar, sair, gestor, admin, atualizarUsuario: setUsuario }}>
       {children}
     </AuthCtx.Provider>
   )

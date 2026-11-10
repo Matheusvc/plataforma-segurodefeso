@@ -44,6 +44,51 @@ public class ArquivoService {
         return nome;
     }
 
+    // ------------------------------------------------------------------ foto de perfil (app.uploads/perfis/<usuário>/)
+    public static final Set<String> EXTENSOES_FOTO = Set.of(".jpg", ".jpeg", ".png", ".webp");
+    private static final long MAX_FOTO = 3L * 1024 * 1024;
+
+    public String salvarFoto(Long usuarioId, MultipartFile arquivo) {
+        String original = arquivo.getOriginalFilename() == null ? "" : arquivo.getOriginalFilename();
+        int ponto = original.lastIndexOf('.');
+        String ext = ponto >= 0 ? original.substring(ponto).toLowerCase(Locale.ROOT) : "";
+        if (!EXTENSOES_FOTO.contains(ext)) {
+            throw new RegraException("Envie a foto em JPG, PNG ou WEBP.");
+        }
+        if (arquivo.getSize() > MAX_FOTO) {
+            throw new RegraException("A foto pode ter no máximo 3 MB.");
+        }
+        String nome = UUID.randomUUID().toString().replace("-", "") + ext;
+        try (InputStream in = arquivo.getInputStream()) {
+            Path pasta = pastaFoto(usuarioId);
+            Files.createDirectories(pasta);
+            Files.copy(in, pasta.resolve(nome), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new RegraException("Não foi possível gravar a foto. Tente de novo.");
+        }
+        return nome;
+    }
+
+    public Path caminhoFoto(Long usuarioId, String nome) {
+        Path p = pastaFoto(usuarioId).resolve(nome).normalize();
+        if (!p.startsWith(raiz)) {
+            throw new RegraException("Caminho inválido.");
+        }
+        return p;
+    }
+
+    public void excluirFoto(Long usuarioId, String nome) {
+        try {
+            Files.deleteIfExists(caminhoFoto(usuarioId, nome));
+        } catch (IOException ignored) {
+            // foto órfã não atrapalha
+        }
+    }
+
+    private Path pastaFoto(Long usuarioId) {
+        return raiz.resolve("perfis").resolve(String.valueOf(usuarioId));
+    }
+
     public Path caminho(Long clienteId, String nome) {
         Path p = raiz.resolve(String.valueOf(clienteId)).resolve(nome).normalize();
         if (!p.startsWith(raiz)) {

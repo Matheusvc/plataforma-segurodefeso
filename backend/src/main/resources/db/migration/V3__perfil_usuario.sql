@@ -1,0 +1,2 @@
+ALTER TABLE usuarios ADD COLUMN telefone VARCHAR(40);
+ALTER TABLE usuarios ADD COLUMN foto     VARCHAR(100);

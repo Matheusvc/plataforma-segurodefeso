@@ -1,5 +1,6 @@
 import { NavLink, Link } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
+import Avatar from './Avatar.jsx'
 import { AvisoProvider } from './ui.jsx'
 import { br } from '../util.js'
 
@@ -40,19 +41,22 @@ export default function Layout({ children }) {
         <Item to="/planilhas">Planilhas</Item>
         <Item to="/auxiliares">Auxiliares</Item>
         <Item to="/defesos">Defesos</Item>
+        <Grupo>Configurações</Grupo>
+        <Item to="/perfil">Meu perfil</Item>
         {admin && (
           <>
-            <Grupo>Administração</Grupo>
             <Item to="/admin/usuarios">Usuários</Item>
-            <Item to="/admin/configuracoes">Configurações</Item>
+            <Item to="/admin/configuracoes">Parâmetros do sistema</Item>
             <Item to="/admin/atividades">Atividades</Item>
           </>
         )}
-        <div className="mt-auto border-t border-marca-800 px-2.5 pt-3 text-xs text-[#CFE3E8]">
-          {usuario.nome} · {usuario.papelNome}<br />
-          <Link to="/minha-senha" className="text-white underline">Trocar senha</Link>
-          {' · '}
-          <button type="button" onClick={sair} className="text-white underline">Sair</button>
+        <div className="mt-auto flex items-center gap-2.5 border-t border-marca-800 px-2.5 pt-3 text-xs text-[#CFE3E8]">
+          <Link to="/perfil" aria-label="Abrir meu perfil"><Avatar usuario={usuario} tamanho={36} /></Link>
+          <div className="min-w-0">
+            <div className="truncate font-semibold text-white">{usuario.nome}</div>
+            <div className="truncate">{usuario.papelNome}</div>
+            <button type="button" onClick={sair} className="text-white underline">Sair</button>
+          </div>
         </div>
       </nav>
       <main className="flex min-w-0 flex-1 flex-col gap-5 px-4 pb-12 pt-6 md:px-8">

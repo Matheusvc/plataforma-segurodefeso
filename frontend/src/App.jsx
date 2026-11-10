@@ -18,7 +18,7 @@ import Mensagens from './pages/Mensagens.jsx'
 import Honorarios from './pages/Honorarios.jsx'
 import Relatorios from './pages/Relatorios.jsx'
 import Planilhas from './pages/Planilhas.jsx'
-import MinhaSenha from './pages/MinhaSenha.jsx'
+import Perfil from './pages/Perfil.jsx'
 import Usuarios from './pages/admin/Usuarios.jsx'
 import Configuracoes from './pages/admin/Configuracoes.jsx'
 import Atividades from './pages/admin/Atividades.jsx'
@@ -53,8 +53,7 @@ export default function App() {
         <Route path="/honorarios" element={gestor ? <Honorarios /> : <SemPermissao />} />
         <Route path="/relatorios" element={gestor ? <Relatorios /> : <SemPermissao />} />
         <Route path="/planilhas" element={<Planilhas />} />
-        <Route path="/minha-senha" element={<MinhaSenha />} />
-        <Route path="/admin/usuarios" element={admin ? <Usuarios /> : <SemPermissao />} />
+        <Route path="/perfil" element={<Perfil />} />        <Route path="/admin/usuarios" element={admin ? <Usuarios /> : <SemPermissao />} />
         <Route path="/admin/configuracoes" element={admin ? <Configuracoes /> : <SemPermissao />} />
         <Route path="/admin/atividades" element={admin ? <Atividades /> : <SemPermissao />} />
         <Route path="*" element={<Navigate to="/" replace />} />

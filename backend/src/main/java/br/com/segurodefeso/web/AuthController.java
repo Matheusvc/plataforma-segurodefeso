@@ -1,8 +1,16 @@
 package br.com.segurodefeso.web;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
 
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,16 +21,22 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import br.com.segurodefeso.config.Hoje;
 import br.com.segurodefeso.entidade.Usuario;
 import br.com.segurodefeso.repositorio.UsuarioRepo;
+import br.com.segurodefeso.servico.ArquivoService;
 import br.com.segurodefeso.servico.LoginService;
+import br.com.segurodefeso.servico.NaoEncontradoException;
 import br.com.segurodefeso.servico.RegraException;
 import br.com.segurodefeso.servico.UsuarioAtual;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,7 +52,11 @@ public class AuthController {
     public record SenhaReq(String atual, String nova, String confirma) {
     }
 
-    public record Eu(Long id, String nome, String email, String papel, String papelNome, String hoje) {
+    public record PerfilReq(String nome, String telefone) {
+    }
+
+    public record Eu(Long id, String nome, String email, String papel, String papelNome, String hoje, String telefone,
+                     String foto) {
     }
 
     private final AuthenticationManager auth;
@@ -47,10 +65,12 @@ public class AuthController {
     private final UsuarioRepo usuarios;
     private final UsuarioAtual atual;
     private final PasswordEncoder encoder;
+    private final ArquivoService arquivos;
     private final Hoje hoje;
 
     public AuthController(AuthenticationManager auth, SecurityContextRepository contexto, LoginService login,
-                          UsuarioRepo usuarios, UsuarioAtual atual, PasswordEncoder encoder, Hoje hoje) {
+                          UsuarioRepo usuarios, UsuarioAtual atual, PasswordEncoder encoder, ArquivoService arquivos, Hoje hoje) {
+        this.arquivos = arquivos;
         this.auth = auth;
         this.contexto = contexto;
         this.login = login;
@@ -116,7 +136,66 @@ public class AuthController {
         return Map.of("mensagem", "Senha alterada.");
     }
 
+    @PutMapping("/perfil")
+    public Eu perfil(@RequestBody PerfilReq req) {
+        Usuario u = atual.get();
+        String nome = req.nome() == null ? "" : req.nome().trim();
+        if (nome.isEmpty()) {
+            throw new RegraException("Informe o seu nome.");
+        }
+        if (nome.length() > 150) {
+            throw new RegraException("O nome pode ter no máximo 150 caracteres.");
+        }
+        String tel = req.telefone() == null ? "" : req.telefone().trim();
+        if (tel.length() > 40) {
+            throw new RegraException("O telefone pode ter no máximo 40 caracteres.");
+        }
+        u.setNome(nome);
+        u.setTelefone(tel.isEmpty() ? null : tel);
+        usuarios.save(u);
+        return eu(u);
+    }
+
+    @PostMapping(value = "/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Eu enviarFoto(@RequestPart("arquivo") MultipartFile arquivo) {
+        Usuario u = atual.get();
+        String nova = arquivos.salvarFoto(u.getId(), arquivo);
+        String antiga = u.getFoto();
+        u.setFoto(nova);
+        usuarios.save(u);
+        if (antiga != null) {
+            arquivos.excluirFoto(u.getId(), antiga);
+        }
+        return eu(u);
+    }
+
+    @DeleteMapping("/foto")
+    public Eu removerFoto() {
+        Usuario u = atual.get();
+        if (u.getFoto() != null) {
+            arquivos.excluirFoto(u.getId(), u.getFoto());
+            u.setFoto(null);
+            usuarios.save(u);
+        }
+        return eu(u);
+    }
+
+    /** Foto do usuário logado (a tela usa ?v=nome-do-arquivo para não ficar com a foto antiga em cache). */
+    @GetMapping("/foto")
+    public ResponseEntity<Resource> foto() {
+        Usuario u = atual.get();
+        Path p = u.getFoto() == null ? null : arquivos.caminhoFoto(u.getId(), u.getFoto());
+        if (p == null || !Files.exists(p)) {
+            throw new NaoEncontradoException("Sem foto de perfil.");
+        }
+        return ResponseEntity.ok()
+            .contentType(MediaTypeFactory.getMediaType(u.getFoto()).orElse(MediaType.APPLICATION_OCTET_STREAM))
+            .cacheControl(CacheControl.maxAge(Duration.ofDays(30)).cachePrivate())
+            .body(new FileSystemResource(p));
+    }
+
     private Eu eu(Usuario u) {
-        return new Eu(u.getId(), u.getNome(), u.getEmail(), u.getPapel().name(), u.getPapel().getNome(), hoje.data().toString());
+        return new Eu(u.getId(), u.getNome(), u.getEmail(), u.getPapel().name(), u.getPapel().getNome(),
+            hoje.data().toString(), u.getTelefone(), u.getFoto());
     }
 }
