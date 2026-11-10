@@ -78,7 +78,8 @@ Com os valores padrão do `application.yml`, o sistema já cria um administrador
 | E-mail | `admin@escritorio.local` |
 | Senha | `Defeso2026adm` |
 
-Dez clientes fictícios são carregados automaticamente (`DADOS_EXEMPLO=true`).
+O banco começa vazio. Para treinar a equipe com 10 clientes fictícios, defina `DADOS_EXEMPLO=true`
+antes de iniciar (nunca com dados reais).
 
 Para usar credenciais diferentes, defina variáveis de ambiente antes de rodar:
 

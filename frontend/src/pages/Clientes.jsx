@@ -31,6 +31,7 @@ export default function Clientes() {
             <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome, CPF, município ou colônia" />
           </label>
           <BotaoLink to="/clientes/novo">+ Novo cliente</BotaoLink>
+          <BotaoLink to="/triagem" variante="sec">Triagem de novo cliente</BotaoLink>
           <BotaoLink href={urlApi('/planilhas/exportar/clientes.xlsx')} variante="neutro">Exportar planilha</BotaoLink>
         </div>
         <Pills opcoes={opcoes} valor={filtro} onChange={setFiltro} />

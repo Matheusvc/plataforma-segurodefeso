@@ -27,27 +27,23 @@ export default function Layout({ children }) {
           <div className="text-lg font-bold">Seguro-Defeso</div>
           <div className="text-xs text-[#B9D3DA]">Painel do escritório</div>
         </div>
-        <Grupo>Operação</Grupo>
         <Item to="/" fim>Início</Item>
         <Item to="/clientes">Clientes</Item>
-        <Item to="/triagem">Triagem</Item>
-        <Item to="/status">Atualizar status</Item>
-        <Grupo>Processos</Grupo>
         <Item to="/requerimentos">Requerimentos</Item>
         <Item to="/dae">DAE (eSocial)</Item>
         <Item to="/prazos">Prazos</Item>
-        <Item to="/defesos">Defesos</Item>
-        <Grupo>Relacionamento</Grupo>
+        <Grupo>Mais</Grupo>
         <Item to="/mensagens">Mensagens</Item>
         {gestor && <Item to="/honorarios">Honorários</Item>}
-        <Grupo>Gestão</Grupo>
         {gestor && <Item to="/relatorios">Relatórios</Item>}
         <Item to="/planilhas">Planilhas</Item>
+        <Item to="/defesos">Defesos</Item>
         {admin && (
           <>
+            <Grupo>Administração</Grupo>
             <Item to="/admin/usuarios">Usuários</Item>
             <Item to="/admin/configuracoes">Configurações</Item>
-            <Item to="/admin/atividades">Registro de atividades</Item>
+            <Item to="/admin/atividades">Atividades</Item>
           </>
         )}
         <div className="mt-auto border-t border-marca-800 px-2.5 pt-3 text-xs text-[#CFE3E8]">
