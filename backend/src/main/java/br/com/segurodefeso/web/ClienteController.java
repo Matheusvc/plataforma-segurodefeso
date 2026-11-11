@@ -35,7 +35,6 @@ import br.com.segurodefeso.dominio.ConfigValores;
 import br.com.segurodefeso.dominio.Cpf;
 import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Entrevista;
-import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Requisito;
 import br.com.segurodefeso.dominio.Telefone;
 import br.com.segurodefeso.dominio.TipoDocumento;
@@ -99,7 +98,7 @@ public class ClienteController {
             }
             if (filtro.equals("todos")) return true;
             if (filtro.equals("pendencia")) {
-                return !a.apto() && (c.etapa() == Etapa.DOCUMENTACAO || c.etapa() == Etapa.A_REQUERER);
+                return !a.apto() && a.pendenteDeRequerer();
             }
             return c.etapa().name().equalsIgnoreCase(filtro);
         }).toList();
@@ -215,9 +214,7 @@ public class ClienteController {
     /** Corpo: {"RGP1ANO": true, "HABITUAL": false, "GOV": null, ...} */
     @PutMapping("/clientes/{id}/requisitos")
     public Map<String, String> requisitos(@PathVariable Long id, @RequestBody Map<String, Boolean> corpo) {
-        Map<Requisito, Boolean> r = new HashMap<>();
-        corpo.forEach((k, v) -> r.put(Requisito.valueOf(k), v));
-        servico.salvarRequisitos(id, r, atual.id());
+        servico.salvarRequisitos(id, Requisito.respostas(corpo), atual.id());
         return Map.of("mensagem", "Requisitos salvos.");
     }
 

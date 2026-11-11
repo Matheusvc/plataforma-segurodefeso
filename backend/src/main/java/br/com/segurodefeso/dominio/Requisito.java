@@ -1,5 +1,8 @@
 package br.com.segurodefeso.dominio;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Requisitos do seguro-defeso conferidos na triagem.
  * Base: Lei 10.779/2003, com a redação da Lei 13.134/2015, e regulamento.
@@ -39,4 +42,13 @@ public enum Requisito {
     public String getCurto() { return curto; }
     public String getProva() { return prova; }
     public boolean isEssencial() { return essencial; }
+
+    /** Converte as respostas vindas do JSON ({"RGP1ANO": true, ...}) para o enum. */
+    public static Map<Requisito, Boolean> respostas(Map<String, Boolean> json) {
+        Map<Requisito, Boolean> r = new HashMap<>();
+        if (json != null) {
+            json.forEach((k, v) -> r.put(valueOf(k), v));
+        }
+        return r;
+    }
 }

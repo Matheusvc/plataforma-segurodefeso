@@ -54,15 +54,15 @@ public final class Mensagens {
                 yield "Olá, " + pn + "! Para seguir com o seu seguro-defeso, precisamos de:\n" + pend
                         + "\nPode mandar foto legível por aqui mesmo.";
             }
-            case EXIGENCIA -> "Olá, " + pn + "! O seu pedido do seguro-defeso (protocolo " + Prazos.nvl(c.protocolo(), "[protocolo]")
-                    + ") recebeu uma exigência:\n" + Prazos.nvl(c.exigenciaTexto(), "[o que foi pedido]") + "\nPrazo: "
+            case EXIGENCIA -> "Olá, " + pn + "! O seu pedido do seguro-defeso (protocolo " + Texto.nvl(c.protocolo(), "[protocolo]")
+                    + ") recebeu uma exigência:\n" + Texto.nvl(c.exigenciaTexto(), "[o que foi pedido]") + "\nPrazo: "
                     + (c.prazoData() != null ? Datas.br(c.prazoData()) : "[prazo]") + ". Envie o documento por aqui o quanto antes.";
             case LOGIN -> "Olá, " + pn + "! Vamos fazer o seu pedido do seguro-defeso em [data], às [hora].\n"
                     + "Nesse horário, fique com o celular por perto: vamos precisar do código que o gov.br vai enviar para você.";
             case DEFERIDO -> "Olá, " + pn + "! Boa notícia: o seu seguro-defeso foi deferido.\n"
                     + "Vamos avisar a cada parcela liberada. Qualquer dúvida, chame por aqui.";
             case INDEFERIDO -> "Olá, " + pn + ". O seu pedido do seguro-defeso foi negado.\nMotivo informado: "
-                    + Prazos.nvl(c.indeferimentoMotivo(), "[motivo]") + "\nJá estamos analisando o recurso. Precisamos conversar com você até [data].";
+                    + Texto.nvl(c.indeferimentoMotivo(), "[motivo]") + "\nJá estamos analisando o recurso. Precisamos conversar com você até [data].";
             case PROCURACAO -> "Olá, " + pn + "! A procuração eletrônica que você deu ao escritório no e-CAC vence em "
                     + (c.procuracaoValidade() != null ? Datas.br(c.procuracaoValidade()) : "[data]")
                     + ".\nPrecisamos renová-la para continuar emitindo o seu DAE. Podemos marcar um horário?";

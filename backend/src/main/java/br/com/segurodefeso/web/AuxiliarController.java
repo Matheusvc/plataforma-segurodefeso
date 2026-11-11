@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static br.com.segurodefeso.dominio.Texto.limpar;
+
 import br.com.segurodefeso.config.Hoje;
 import br.com.segurodefeso.entidade.Auxiliar;
 import br.com.segurodefeso.repositorio.AuxiliarRepo;
@@ -63,14 +65,11 @@ public class AuxiliarController {
             throw new RegraException("Informe o nome do auxiliar.");
         }
         a.setNome(req.nome().trim());
-        a.setTelefone(vazioNulo(req.telefone()));
-        a.setOab(vazioNulo(req.oab()));
+        a.setTelefone(limpar(req.telefone()));
+        a.setOab(limpar(req.oab()));
         if (req.ativo() != null) {
             a.setAtivo(req.ativo());
         }
     }
 
-    private static String vazioNulo(String s) {
-        return s == null || s.isBlank() ? null : s.trim();
-    }
 }

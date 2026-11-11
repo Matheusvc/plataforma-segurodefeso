@@ -3,8 +3,14 @@ package br.com.segurodefeso.entidade;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import br.com.segurodefeso.dominio.*;
-import jakarta.persistence.*;
+import br.com.segurodefeso.dominio.StatusDae;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "dae")

@@ -26,12 +26,12 @@ public final class FilaDoDia {
             String ficha = "/clientes/" + c.id();
             if (c.etapa() == Etapa.EXIGENCIA) {
                 Long n = Datas.dias(c.prazoData(), hoje);
-                add(fila, "Urgente", c.nome() + ": cumprir exigência", Prazos.nvl(c.exigenciaTexto(), "Ver exigência no site."),
+                add(fila, "Urgente", c.nome() + ": cumprir exigência", Texto.nvl(c.exigenciaTexto(), "Ver exigência no site."),
                         c.prazoData() != null ? "até " + Datas.br(c.prazoData()) + " · " + Datas.faltaTxt(n) : "prazo não informado",
                         "Abrir", ficha + "?aba=documentos");
             }
             if (c.etapa() == Etapa.INDEFERIDO) {
-                add(fila, "Urgente", c.nome() + ": decidir recurso ou ação", Prazos.nvl(c.indeferimentoMotivo(), "Ver motivo no site."),
+                add(fila, "Urgente", c.nome() + ": decidir recurso ou ação", Texto.nvl(c.indeferimentoMotivo(), "Ver motivo no site."),
                         "conferir prazo", "Abrir", ficha + "?aba=linha");
             }
             if (!a.daeVencidos().isEmpty()) {
@@ -52,7 +52,7 @@ public final class FilaDoDia {
                         "Apto. Fazer o pedido no Emprega Brasil e registrar o protocolo.", "no prazo do defeso", "Registrar",
                         "/status?cliente=" + c.id());
             }
-            if ((c.etapa() == Etapa.DOCUMENTACAO || c.etapa() == Etapa.A_REQUERER) && !a.apto()) {
+            if (a.pendenteDeRequerer() && !a.apto()) {
                 add(fila, "Média", c.nome() + ": pendências para requerer", String.join("; ", a.bloqueios()) + ".",
                         "regularizar", "Abrir", ficha + "?aba=requisitos");
             }

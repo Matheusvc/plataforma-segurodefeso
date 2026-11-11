@@ -47,4 +47,9 @@ public record Analise(
     public String nome() {
         return cliente.nome();
     }
+
+    /** Ainda reunindo requisitos e documentos para fazer o pedido. */
+    public boolean pendenteDeRequerer() {
+        return cliente.etapa() == Etapa.DOCUMENTACAO || cliente.etapa() == Etapa.A_REQUERER;
+    }
 }

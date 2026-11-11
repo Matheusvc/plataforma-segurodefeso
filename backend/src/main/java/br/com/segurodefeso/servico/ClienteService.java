@@ -26,6 +26,7 @@ import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Requisito;
 import br.com.segurodefeso.dominio.StatusDae;
 import br.com.segurodefeso.dominio.TipoDocumento;
+import static br.com.segurodefeso.dominio.Texto.limpar;
 import br.com.segurodefeso.entidade.Cliente;
 import br.com.segurodefeso.entidade.Dae;
 import br.com.segurodefeso.entidade.Documento;
@@ -164,9 +165,7 @@ public class ClienteService {
         c = clientes.save(c);
         eventos.registrar(c.getId(), usuarioId, "cadastro", "Cliente cadastrado na plataforma");
         if (f.respostas() != null && !f.respostas().isEmpty()) {
-            Map<Requisito, Boolean> r = new HashMap<>();
-            f.respostas().forEach((k, v) -> r.put(Requisito.valueOf(k), v));
-            salvarRequisitos(c.getId(), r, usuarioId);
+            salvarRequisitos(c.getId(), Requisito.respostas(f.respostas()), usuarioId);
         }
         return c;
     }
@@ -470,9 +469,6 @@ public class ClienteService {
     }
 
     // ------------------------------------------------------------------ auxiliares
-    static String limpar(String s) {
-        return s == null || s.isBlank() ? null : s.trim();
-    }
 
     private static String uf(String txt, String rotulo, List<String> erros) {
         String u = limpar(txt);

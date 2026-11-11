@@ -5,6 +5,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import static br.com.segurodefeso.dominio.Texto.nvl;
+
 /** Vencimentos calculados a partir dos dados: exigência, recurso, RGP, procuração e defeso (o DAE tem tela própria). */
 public final class Prazos {
 
@@ -78,7 +80,4 @@ public final class Prazos {
                 data == null ? "conferir" : Datas.faltaTxt(n), cor));
     }
 
-    static String nvl(String s, String padrao) {
-        return s == null || s.isBlank() ? padrao : s;
-    }
 }

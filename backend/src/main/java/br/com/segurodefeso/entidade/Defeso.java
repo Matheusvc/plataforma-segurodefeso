@@ -3,8 +3,11 @@ package br.com.segurodefeso.entidade;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-import br.com.segurodefeso.dominio.*;
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "defesos")

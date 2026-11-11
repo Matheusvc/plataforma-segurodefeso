@@ -49,9 +49,9 @@ import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Prazos;
 import br.com.segurodefeso.dominio.Requisito;
+import static br.com.segurodefeso.dominio.Texto.vazio;
 import br.com.segurodefeso.entidade.Cliente;
 import br.com.segurodefeso.repositorio.ClienteRepo;
-import br.com.segurodefeso.repositorio.DefesoRepo;
 
 /** Exportar listas (.xlsx e .csv) e importar a planilha de clientes. */
 @Service
@@ -129,13 +129,13 @@ public class PlanilhaService {
 
     private final ClienteService clienteService;
     private final ClienteRepo clientes;
-    private final DefesoRepo defesos;
+    private final DefesoService defesos;
     private final ConfigService config;
     private final EventoService eventos;
     private final Hoje hoje;
     private final Map<String, PreviaGuardada> previas = new ConcurrentHashMap<>();
 
-    public PlanilhaService(ClienteService clienteService, ClienteRepo clientes, DefesoRepo defesos, ConfigService config,
+    public PlanilhaService(ClienteService clienteService, ClienteRepo clientes, DefesoService defesos, ConfigService config,
                            EventoService eventos, Hoje hoje) {
         this.clienteService = clienteService;
         this.clientes = clientes;
@@ -199,13 +199,9 @@ public class PlanilhaService {
                         Datas.br(c.prazoData()), c.indeferimentoMotivo(), Datas.br(c.cienciaData()), c.parcelasLiberadas(),
                         c.parcelasTotal(), Datas.br(c.ultimaConferencia()), c.situacao());
                 }).toList(), Set.of());
-            case "prazos" -> {
-                List<Prazos.DefesoInfo> ds = defesos.findAll().stream().map(d -> new Prazos.DefesoInfo(d.getEspecie(),
-                    d.getRegiao(), d.getPortaria(), d.getInicio(), d.getFim(), d.getPrazoRequerimento())).toList();
-                yield new Tabela(List.of("Data", "Tipo", "Cliente", "Descrição", "Situação"),
-                    Prazos.calcular(todos, ds, hoje.data()).stream()
-                        .map(p -> lista(p.dataBr(), p.tipo(), p.cliente(), p.texto(), p.falta())).toList(), Set.of());
-            }
+            case "prazos" -> new Tabela(List.of("Data", "Tipo", "Cliente", "Descrição", "Situação"),
+                Prazos.calcular(todos, defesos.infos(), hoje.data()).stream()
+                    .map(p -> lista(p.dataBr(), p.tipo(), p.cliente(), p.texto(), p.falta())).toList(), Set.of());
             case "honorarios" -> new Tabela(List.of("Nome", "CPF", "Parcelas liberadas", "Total de parcelas", "% honorários",
                 "Honorário por parcela (R$)", "Devido (R$)", "Recebido (R$)", "Saldo (R$)", "A liberar (R$)"),
                 todos.stream().filter(a -> a.cliente().etapa() == Etapa.DEFERIDO && a.cliente().parcelasTotal() > 0)
@@ -509,9 +505,6 @@ public class PlanilhaService {
         return Etapa.DOCUMENTACAO;
     }
 
-    private static boolean vazio(String s) {
-        return s == null || s.isBlank();
-    }
 
     static String normalizar(String s) {
         if (s == null) return "";
