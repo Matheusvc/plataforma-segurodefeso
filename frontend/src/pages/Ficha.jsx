@@ -13,7 +13,7 @@ const ABAS = [['resumo', 'Resumo'], ['requisitos', 'Requisitos'], ['documentos',
 export default function Ficha() {
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
-  const { gestor } = useAuth()
+  const { gestor, meta } = useAuth()
   const { dados, erro, recarregar } = useDados(`/clientes/${id}`)
   const { executar, ocupado } = useAcao()
   const aba = params.get('aba') || 'resumo'
