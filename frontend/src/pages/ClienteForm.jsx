@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api.js'
-import { Alerta, Botao, BotaoLink, Campo, Card, Carregando, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { Alerta, Botao, BotaoLink, Campo, Card, Carregando, Titulo, useAcao, useAviso, useDados } from '../components/ui.jsx'
+import { mascaras, validadores } from '../formato.js'
 import { br, cpf } from '../util.js'
 
 const SEXOS = ['Masculino', 'Feminino', 'Outro']
@@ -59,6 +60,49 @@ const SECOES = [
 ]
 const CHAVES = SECOES.flatMap(([, campos]) => (Array.isArray(campos) ? campos.map(([k]) => k) : []))
 const DATAS = ['nascimento', 'rgpValidade', 'procuracaoValidade', 'dataExpedicao', 'dataAfiliacao']
+const OBRIGATORIOS = new Set(SECOES.flatMap(([, campos]) => (Array.isArray(campos) ? campos.filter((f) => f[2]).map((f) => f[0]) : [])))
+
+// Máscara (formata e bloqueia o que não cabe), validação e teclado de cada campo.
+const dataPassada = validadores.data({ passado: true })
+const dataLonge = validadores.data({ min: 2000, max: 2100 })
+const DATA = { inputMode: 'numeric', dica: 'dd/mm/aaaa', max: 10 }
+const UF = { mascara: mascaras.uf, validar: validadores.uf, dica: 'UF, ex.: MA', max: 2 }
+const REGRAS = {
+  nome: { mascara: mascaras.nome, validar: validadores.nomeCompleto, autoComplete: 'name' },
+  nascimento: { ...DATA, mascara: mascaras.data, validar: dataPassada },
+  cpf: { mascara: mascaras.cpf, validar: validadores.cpf, inputMode: 'numeric', dica: '000.000.000-00', max: 14 },
+  rg: { mascara: mascaras.rg, max: 15 },
+  orgaoEmissor: { mascara: mascaras.orgaoEmissor, dica: 'ex.: SSP/MA', max: 12 },
+  dataExpedicao: { ...DATA, mascara: mascaras.data, validar: dataPassada },
+  nomePai: { mascara: mascaras.nome },
+  nomeMae: { mascara: mascaras.nome },
+  estadoOrigem: UF,
+  cidadeOrigem: { mascara: mascaras.nome },
+  tituloEleitor: { mascara: mascaras.numeros12, inputMode: 'numeric', max: 12 },
+  rgpNumero: { mascara: mascaras.rgp, dica: 'ex.: MA-000111', max: 20 },
+  inscricaoNumero: { mascara: mascaras.numeros12, inputMode: 'numeric', max: 12 },
+  dataAfiliacao: { ...DATA, mascara: mascaras.data, validar: dataPassada },
+  cep: { mascara: mascaras.cep, validar: validadores.cep, inputMode: 'numeric', dica: '00000-000', max: 9 },
+  bairro: { mascara: mascaras.texto(100) },
+  numero: { mascara: mascaras.numeroEndereco, dica: 'ex.: 120 ou S/N', max: 6 },
+  uf: UF,
+  complemento: { mascara: mascaras.texto(60) },
+  municipio: { mascara: mascaras.nome },
+  logradouro: { mascara: mascaras.texto(120) },
+  telefone: { mascara: mascaras.telefone, validar: validadores.telefone, inputMode: 'tel', autoComplete: 'tel', dica: '(98) 98888-7777', max: 15 },
+  nit: { mascara: mascaras.nit, validar: validadores.nit, inputMode: 'numeric', dica: '000.00000.00-0', max: 14 },
+  colonia: { mascara: mascaras.texto(80) },
+  rgpDesde: { mascara: mascaras.mesAno, validar: validadores.mesAno, inputMode: 'numeric', dica: 'mm/aaaa', max: 7 },
+  rgpValidade: { ...DATA, mascara: mascaras.data, validar: dataLonge },
+  especie: { mascara: mascaras.texto(80) },
+  procuracaoValidade: { ...DATA, mascara: mascaras.data, validar: dataLonge },
+  honorariosPct: { mascara: mascaras.percentual, validar: validadores.percentual, inputMode: 'decimal', dica: 'ex.: 30', max: 6 },
+}
+
+function erroDe(k, valor) {
+  if (OBRIGATORIOS.has(k) && !String(valor ?? '').trim()) return 'Preencha este campo.'
+  return REGRAS[k]?.validar ? REGRAS[k].validar(valor) : ''
+}
 
 function Secao({ titulo, children }) {
   return (
@@ -76,6 +120,8 @@ export default function ClienteForm({ respostas, triagem, aoSalvar }) {
   const navegar = useNavigate()
   const { executar, ocupado } = useAcao()
   const [form, setForm] = useState(novo ? {} : null)
+  const [erros, setErros] = useState({})
+  const aviso = useAviso()
   const { dados: auxiliares } = useDados('/auxiliares')
 
   useEffect(() => {
@@ -88,6 +134,7 @@ export default function ClienteForm({ respostas, triagem, aoSalvar }) {
       DATAS.forEach((k) => { v[k] = br(dados[k]) })
       v.cpf = cpf(c.cpf)
       v.honorariosPct = c.honorariosPct != null ? String(c.honorariosPct).replace('.', ',') : ''
+      CHAVES.forEach((k) => { if (REGRAS[k]?.mascara) v[k] = REGRAS[k].mascara(v[k]) })
       v.observacoes = c.observacoes || ''
       v.auxiliarId = c.pessoal.auxiliarId ?? ''
       v.senhaGov = ''
@@ -99,10 +146,23 @@ export default function ClienteForm({ respostas, triagem, aoSalvar }) {
 
   function mudar(k, v) {
     setForm((f) => ({ ...f, [k]: v }))
+    setErros((x) => (x[k] ? { ...x, [k]: erroDe(k, v) } : x))
   }
 
   async function salvar(e) {
     e.preventDefault()
+    const novosErros = {}
+    CHAVES.forEach((k) => {
+      const mensagem = erroDe(k, form[k])
+      if (mensagem) novosErros[k] = mensagem
+    })
+    setErros(novosErros)
+    const primeiro = CHAVES.find((k) => novosErros[k])
+    if (primeiro) {
+      aviso.erro('Corrija os campos destacados em vermelho.')
+      document.getElementById(`campo-${primeiro}`)?.focus()
+      return
+    }
     const { senhaCadastrada, ...resto } = form
     const corpo = { ...resto, auxiliarId: form.auxiliarId ? Number(form.auxiliarId) : null, ...(novo ? { respostas } : {}) }
     await executar(
@@ -132,9 +192,16 @@ export default function ClienteForm({ respostas, triagem, aoSalvar }) {
         </select>
       )
     } else {
-      entrada = <input type="text" value={form[k] || ''} required={obrig} placeholder={dica || undefined} onChange={(e) => mudar(k, e.target.value)} />
+      const regra = REGRAS[k] || {}
+      entrada = (
+        <input id={`campo-${k}`} type="text" value={form[k] || ''} placeholder={regra.dica || dica || undefined}
+          inputMode={regra.inputMode} autoComplete={regra.autoComplete} maxLength={regra.max}
+          aria-invalid={erros[k] ? 'true' : undefined}
+          onChange={(e) => mudar(k, regra.mascara ? regra.mascara(e.target.value) : e.target.value)}
+          onBlur={() => setErros((x) => ({ ...x, [k]: erroDe(k, form[k]) }))} />
+      )
     }
-    return <Campo key={k} rotulo={rotulo} obrigatorio={obrig}>{entrada}</Campo>
+    return <Campo key={k} rotulo={rotulo} obrigatorio={obrig} erro={erros[k]}>{entrada}</Campo>
   }
 
   return (
@@ -142,7 +209,7 @@ export default function ClienteForm({ respostas, triagem, aoSalvar }) {
       <Titulo titulo={novo ? 'Cadastro' : 'Editar cadastro'} sub="Campos com * são obrigatórios. Datas no formato dd/mm/aaaa." />
       {novo && triagem && <Alerta cor="info">Triagem concluída: {triagem}. Agora complete o cadastro.</Alerta>}
       <Card>
-        <form onSubmit={salvar} className="flex flex-col gap-5">
+        <form onSubmit={salvar} noValidate className="flex flex-col gap-5">
           {SECOES.map(([titulo, conteudo]) => (
             <Secao key={titulo} titulo={titulo}>
               {conteudo === 'auxiliar' && (
@@ -156,7 +223,7 @@ export default function ClienteForm({ respostas, triagem, aoSalvar }) {
               )}
               {conteudo === 'observacao' && (
                 <Campo rotulo="Observações" className="col-span-full">
-                  <textarea rows={3} value={form.observacoes || ''} onChange={(e) => mudar('observacoes', e.target.value)} />
+                  <textarea rows={3} maxLength={2000} value={form.observacoes || ''} onChange={(e) => mudar('observacoes', e.target.value)} />
                 </Campo>
               )}
               {Array.isArray(conteudo) && conteudo.map(campo)}

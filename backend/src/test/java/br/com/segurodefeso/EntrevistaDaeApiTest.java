@@ -135,6 +135,26 @@ class EntrevistaDaeApiTest {
     }
 
     @Test
+    void recusaTelefoneENitForaDoTamanho() throws Exception {
+        String base = "\"nome\":\"Ana Maria Teste\",\"cpf\":\"168.995.350-09\",\"municipio\":\"Raposa\",\"rgpNumero\":\"MA-8\"";
+        mvc.perform(post("/api/clientes").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{" + base + ",\"telefone\":\"333333333333333\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.erro", containsString("Telefone inválido")));
+        mvc.perform(post("/api/clientes").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{" + base + ",\"telefone\":\"(98) 12345-6789\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.erro", containsString("Telefone inválido")));      // celular tem que começar com 9
+        mvc.perform(post("/api/clientes").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{" + base + ",\"telefone\":\"(98) 98888-7777\",\"nit\":\"4444444444444444\"}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.erro", containsString("NIT/PIS")));
+        mvc.perform(post("/api/clientes").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{" + base + ",\"telefone\":\"(98) 3333-4444\",\"nit\":\"123.45678.90-1\"}"))
+            .andExpect(status().isOk());
+    }
+
+    @Test
     void auxiliares() throws Exception {
         mvc.perform(post("/api/auxiliares").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"nome\":\"Paula Lima\",\"telefone\":\"(98) 95555-4444\"}"))

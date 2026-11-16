@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../../api.js'
 import { useAuth } from '../../auth.jsx'
 import { Botao, Campo, Card, Td, Th, Titulo, useAcao, useDados } from '../../components/ui.jsx'
+import { mascaras } from '../../formato.js'
 import { br } from '../../util.js'
 
 export default function Usuarios() {
@@ -31,7 +32,7 @@ export default function Usuarios() {
         <form onSubmit={criar} className="flex flex-col gap-3.5">
           <h2 className="text-base font-semibold">Novo usuário</h2>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5">
-            <Campo rotulo="Nome" obrigatorio><input type="text" required value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} /></Campo>
+            <Campo rotulo="Nome" obrigatorio><input type="text" required value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: mascaras.nome(e.target.value) })} /></Campo>
             <Campo rotulo="E-mail" obrigatorio><input type="email" required value={novo.email} onChange={(e) => setNovo({ ...novo, email: e.target.value })} /></Campo>
             <Campo rotulo="Senha inicial (mín. 10, letras e números)" obrigatorio><input type="password" required autoComplete="new-password" value={novo.senha} onChange={(e) => setNovo({ ...novo, senha: e.target.value })} /></Campo>
             <Campo rotulo="Papel"><select value={novo.papel} onChange={(e) => setNovo({ ...novo, papel: e.target.value })}>{meta.papeis.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></Campo>

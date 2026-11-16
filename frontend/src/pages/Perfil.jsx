@@ -3,6 +3,7 @@ import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import Avatar from '../components/Avatar.jsx'
 import { Botao, Campo, Card, Titulo, useAcao } from '../components/ui.jsx'
+import { mascaras, validadores } from '../formato.js'
 
 const SENHA_VAZIA = { atual: '', nova: '', confirma: '' }
 
@@ -27,6 +28,8 @@ export default function Perfil() {
   async function salvarDados(e) {
     e.preventDefault()
     await executar(async () => {
+      const problema = validadores.nomeCompleto(dados.nome) || validadores.telefone(dados.telefone)
+      if (problema) throw new Error(problema)
       const eu = await api('/auth/perfil', { metodo: 'PUT', corpo: dados })
       atualizarUsuario(eu)
       return { mensagem: 'Perfil atualizado.' }
@@ -61,10 +64,10 @@ export default function Perfil() {
             <form onSubmit={salvarDados} className="flex max-w-xl flex-col gap-3">
               <h2 className="text-base font-semibold">Meus dados</h2>
               <Campo rotulo="Nome" obrigatorio>
-                <input type="text" required maxLength={150} value={dados.nome} onChange={(e) => setDados({ ...dados, nome: e.target.value })} />
+                <input type="text" required maxLength={150} value={dados.nome} onChange={(e) => setDados({ ...dados, nome: mascaras.nome(e.target.value) })} />
               </Campo>
               <Campo rotulo="Telefone">
-                <input type="text" maxLength={40} value={dados.telefone} onChange={(e) => setDados({ ...dados, telefone: e.target.value })} />
+                <input type="text" inputMode="tel" maxLength={15} placeholder="(98) 98888-7777" value={dados.telefone} onChange={(e) => setDados({ ...dados, telefone: mascaras.telefone(e.target.value) })} />
               </Campo>
               <Campo rotulo="E-mail (usado no login)">
                 <input type="text" value={usuario.email} readOnly className="bg-slate-50 text-slate-600" />

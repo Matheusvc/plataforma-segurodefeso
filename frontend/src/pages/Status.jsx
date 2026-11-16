@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Botao, BotaoLink, Campo, Card, Carregando, Chip, Pills, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { mascaras } from '../formato.js'
 import { br, cpf } from '../util.js'
 
 const FILTROS = [['andamento', 'Requerido e em exigência'], ['a_requerer', 'A requerer'], ['deferidos', 'Deferidos com parcelas a liberar'], ['todos', 'Todos os clientes']]
@@ -110,7 +111,7 @@ export default function Status() {
               {form.sit === 'exigencia' && (
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5 rounded-lg border border-amber-300 bg-amber-50 p-3.5">
                   <Campo rotulo="O que foi pedido na exigência?" obrigatorio><input type="text" placeholder="Ex.: comprovante de residência atualizado" value={form.exigenciaTexto || ''} onChange={(e) => mudar('exigenciaTexto', e.target.value)} /></Campo>
-                  <Campo rotulo="Prazo para cumprir" obrigatorio><input type="text" placeholder="dd/mm/aaaa" value={form.prazo || ''} onChange={(e) => mudar('prazo', e.target.value)} /></Campo>
+                  <Campo rotulo="Prazo para cumprir" obrigatorio><input type="text" inputMode="numeric" maxLength={10} placeholder="dd/mm/aaaa" value={form.prazo || ''} onChange={(e) => mudar('prazo', mascaras.data(e.target.value))} /></Campo>
                 </div>
               )}
               {form.sit === 'deferido' && (
@@ -122,7 +123,7 @@ export default function Status() {
               {form.sit === 'indeferido' && (
                 <div className="grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3.5 rounded-lg border border-red-300 bg-red-50 p-3.5">
                   <Campo rotulo="Motivo do indeferimento (como está no site)" obrigatorio><input type="text" placeholder="Ex.: vínculo de emprego no CNIS" value={form.motivo || ''} onChange={(e) => mudar('motivo', e.target.value)} /></Campo>
-                  <Campo rotulo="Data em que o cliente tomou ciência"><input type="text" placeholder="dd/mm/aaaa" value={form.ciencia || ''} onChange={(e) => mudar('ciencia', e.target.value)} /></Campo>
+                  <Campo rotulo="Data em que o cliente tomou ciência"><input type="text" inputMode="numeric" maxLength={10} placeholder="dd/mm/aaaa" value={form.ciencia || ''} onChange={(e) => mudar('ciencia', mascaras.data(e.target.value))} /></Campo>
                 </div>
               )}
               {form.sit === 'naoachou' && (

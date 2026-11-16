@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import br.com.segurodefeso.config.Hoje;
+import br.com.segurodefeso.dominio.Telefone;
 import br.com.segurodefeso.entidade.Usuario;
 import br.com.segurodefeso.repositorio.UsuarioRepo;
 import br.com.segurodefeso.servico.ArquivoService;
@@ -147,8 +148,8 @@ public class AuthController {
             throw new RegraException("O nome pode ter no máximo 150 caracteres.");
         }
         String tel = req.telefone() == null ? "" : req.telefone().trim();
-        if (tel.length() > 40) {
-            throw new RegraException("O telefone pode ter no máximo 40 caracteres.");
+        if (!tel.isEmpty() && !Telefone.valido(tel)) {
+            throw new RegraException("Telefone inválido: informe o DDD e o número (10 ou 11 números).");
         }
         u.setNome(nome);
         u.setTelefone(tel.isEmpty() ? null : tel);

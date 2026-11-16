@@ -52,11 +52,12 @@ export function BotaoLink({ to, href, variante = 'pri', pequeno = false, classNa
   return <Link to={to} className={cls} {...resto}>{children}</Link>
 }
 
-export function Campo({ rotulo, obrigatorio, children, className = '' }) {
+export function Campo({ rotulo, obrigatorio, erro, children, className = '' }) {
   return (
     <label className={`flex flex-col gap-1.5 text-xs font-semibold text-slate-600 ${className}`}>
       <span>{rotulo}{obrigatorio && ' *'}</span>
       {children}
+      {erro && <span role="alert" className="text-xs font-medium text-red-700">{erro}</span>}
     </label>
   )
 }

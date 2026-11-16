@@ -25,6 +25,7 @@ import br.com.segurodefeso.dominio.Entrevista;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Requisito;
 import br.com.segurodefeso.dominio.StatusDae;
+import br.com.segurodefeso.dominio.Telefone;
 import br.com.segurodefeso.dominio.TipoDocumento;
 import static br.com.segurodefeso.dominio.Texto.limpar;
 import br.com.segurodefeso.entidade.Cliente;
@@ -227,6 +228,8 @@ public class ClienteService {
         else clientes.findByCpf(cpf).filter(o -> !o.getId().equals(idAtual))
             .ifPresent(o -> erros.add("Já existe cliente com este CPF: " + o.getNome() + "."));
         if (limpar(f.telefone()) == null) erros.add("Telefone/WhatsApp é obrigatório.");
+        else if (!Telefone.valido(f.telefone())) erros.add("Telefone inválido: informe o DDD e o número (10 ou 11 números).");
+        if (limpar(f.nit()) != null && f.nit().replaceAll("\\D", "").length() != 11) erros.add("O NIT/PIS tem 11 números.");
         if (limpar(f.municipio()) == null) erros.add("Município é obrigatório.");
         if (limpar(f.rgpNumero()) == null) erros.add("Nº do RGP é obrigatório.");
         LocalDate nasc = data(f.nascimento(), "Data de nascimento", erros);

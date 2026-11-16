@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Botao, Campo, Card, Carregando, Chip, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { mascaras, validadores } from '../formato.js'
 
 const VAZIO = { nome: '', telefone: '', oab: '', ativo: true }
 
@@ -15,7 +16,11 @@ export default function Auxiliares() {
     e.preventDefault()
     const { id, ...corpo } = form
     await executar(
-      () => api(id ? `/auxiliares/${id}` : '/auxiliares', { metodo: id ? 'PUT' : 'POST', corpo }),
+      () => {
+        const problema = validadores.nomeCompleto(corpo.nome) || validadores.telefone(corpo.telefone)
+        if (problema) throw new Error(problema)
+        return api(id ? `/auxiliares/${id}` : '/auxiliares', { metodo: id ? 'PUT' : 'POST', corpo })
+      },
       () => { setForm(VAZIO); recarregar() },
     )
   }
@@ -34,13 +39,13 @@ export default function Auxiliares() {
         <Card>
           <form onSubmit={salvar} className="flex flex-wrap items-end gap-3">
             <Campo rotulo="Nome" obrigatorio className="flex-[2_1_220px]">
-              <input type="text" required value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+              <input type="text" required value={form.nome} onChange={(e) => setForm({ ...form, nome: mascaras.nome(e.target.value) })} />
             </Campo>
             <Campo rotulo="Telefone" className="flex-[1_1_160px]">
-              <input type="text" value={form.telefone || ''} onChange={(e) => setForm({ ...form, telefone: e.target.value })} />
+              <input type="text" inputMode="tel" maxLength={15} placeholder="(98) 98888-7777" value={form.telefone || ''} onChange={(e) => setForm({ ...form, telefone: mascaras.telefone(e.target.value) })} />
             </Campo>
             <Campo rotulo="OAB (se houver)" className="flex-[1_1_140px]">
-              <input type="text" value={form.oab || ''} onChange={(e) => setForm({ ...form, oab: e.target.value })} />
+              <input type="text" maxLength={14} placeholder="ex.: MA12345" value={form.oab || ''} onChange={(e) => setForm({ ...form, oab: mascaras.oab(e.target.value) })} />
             </Campo>
             <Botao type="submit" disabled={ocupado}>{form.id ? 'Salvar alterações' : 'Cadastrar auxiliar'}</Botao>
             {form.id && <Botao variante="neutro" onClick={() => setForm(VAZIO)}>Cancelar</Botao>}

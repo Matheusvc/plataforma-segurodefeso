@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Botao, Campo, Card, Item, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { mascaras } from '../formato.js'
 import { br } from '../util.js'
 
 const VAZIO = { especie: '', regiao: '', portaria: '', inicio: '', fim: '', prazoRequerimento: '' }
@@ -23,7 +24,7 @@ export default function Defesos() {
   }
 
   const campo = (k, rotulo, obrig, dica) => (
-    <Campo rotulo={rotulo} obrigatorio={obrig}><input type="text" required={obrig} placeholder={dica} value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} /></Campo>
+    <Campo rotulo={rotulo} obrigatorio={obrig}><input type="text" required={obrig} placeholder={dica} value={f[k]} onChange={(e) => setF({ ...f, [k]: dica === 'dd/mm/aaaa' ? mascaras.data(e.target.value) : e.target.value })} /></Campo>
   )
 
   return (

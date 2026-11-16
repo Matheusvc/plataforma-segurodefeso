@@ -69,6 +69,11 @@
   textarea {
     @apply min-h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-marca-700 focus:outline focus:outline-2 focus:outline-marca-100;
   }
+  input[aria-invalid='true'],
+  select[aria-invalid='true'],
+  textarea[aria-invalid='true'] {
+    @apply border-red-500 focus:border-red-500 focus:outline-red-100;
+  }
   input:read-only {
     @apply bg-slate-50 text-slate-600;
   }

@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Alerta, Botao, BotaoLink, Campo, Card, Carregando, Chip, Item, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { mascaras } from '../formato.js'
 import ConferenciaCpf from '../components/ConferenciaCpf.jsx'
 import Documentos from '../components/Documentos.jsx'
 import { br, brl, competencia, cpf, hora } from '../util.js'
@@ -243,7 +244,7 @@ function Financeiro({ a, id, receb, recarregar }) {
       </div>
       <form onSubmit={registrar} className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
         <Campo rotulo="Valor recebido (R$)" className="flex-[1_1_160px]"><input type="text" inputMode="decimal" value={valor} placeholder={String(a.honorariosPorParcela).replace('.', ',')} onChange={(e) => setValor(e.target.value)} /></Campo>
-        <Campo rotulo="Data" className="flex-[1_1_160px]"><input type="text" value={data} placeholder="dd/mm/aaaa (vazio = hoje)" onChange={(e) => setData(e.target.value)} /></Campo>
+        <Campo rotulo="Data" className="flex-[1_1_160px]"><input type="text" inputMode="numeric" maxLength={10} value={data} placeholder="dd/mm/aaaa (vazio = hoje)" onChange={(e) => setData(mascaras.data(e.target.value))} /></Campo>
         <Campo rotulo="Observação" className="flex-[2_1_220px]"><input type="text" value={obs} onChange={(e) => setObs(e.target.value)} /></Campo>
         <Botao type="submit" disabled={ocupado}>Registrar recebimento</Botao>
       </form>

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import static br.com.segurodefeso.dominio.Texto.limpar;
 
 import br.com.segurodefeso.config.Hoje;
+import br.com.segurodefeso.dominio.Telefone;
 import br.com.segurodefeso.entidade.Auxiliar;
 import br.com.segurodefeso.repositorio.AuxiliarRepo;
 import br.com.segurodefeso.servico.NaoEncontradoException;
@@ -63,6 +64,9 @@ public class AuxiliarController {
     private static void preencher(Auxiliar a, AuxiliarReq req) {
         if (req.nome() == null || req.nome().isBlank()) {
             throw new RegraException("Informe o nome do auxiliar.");
+        }
+        if (limpar(req.telefone()) != null && !Telefone.valido(req.telefone())) {
+            throw new RegraException("Telefone inválido: informe o DDD e o número (10 ou 11 números).");
         }
         a.setNome(req.nome().trim());
         a.setTelefone(limpar(req.telefone()));
