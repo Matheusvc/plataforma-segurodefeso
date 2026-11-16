@@ -148,7 +148,8 @@ public class ClienteService {
             new ClienteDados.Pessoal(c.getSexo(), c.getRg(), c.getOrgaoEmissor(), c.getDataExpedicao(), c.getNomePai(),
                 c.getNomeMae(), c.getEstadoCivil(), c.getEstadoOrigem(), c.getCidadeOrigem(), c.getTituloEleitor(),
                 c.getInscricaoNumero(), c.getDataAfiliacao(), c.getCep(), c.getLogradouro(), c.getNumero(),
-                c.getComplemento(), c.getBairro(), c.getUf(), c.getAuxiliarId(), c.getSenhaGovCifrada() != null));
+                c.getComplemento(), c.getBairro(), c.getUf(), c.getAuxiliarId(), c.getSenhaGovCifrada() != null,
+                c.getCpfConferidoEm(), c.getCpfConferidoPor()));
     }
 
     // ------------------------------------------------------------------ cadastro
@@ -180,6 +181,18 @@ public class ClienteService {
         c.setAtualizadoEm(hoje.agora());
         clientes.save(c);
         eventos.registrar(id, usuarioId, "entrevista", "Entrevista: " + nova.getNome());
+    }
+
+    /** Marca ou desfaz a conferência do CPF na Receita (consulta manual, sem custo). */
+    @Transactional
+    public void conferirCpf(Long id, boolean conferido, Long usuarioId) {
+        Cliente c = buscar(id);
+        c.setCpfConferidoEm(conferido ? hoje.data() : null);
+        c.setCpfConferidoPor(conferido ? usuarioId : null);
+        c.setAtualizadoEm(hoje.agora());
+        clientes.save(c);
+        eventos.registrar(id, usuarioId, "cpf", conferido ? "CPF conferido na Receita" : "Conferência do CPF desfeita");
+        atualizarEtapaAutomatica(id, usuarioId);
     }
 
     /** Devolve a senha gov em texto. Cada leitura fica registrada na linha do tempo. */
@@ -262,6 +275,10 @@ public class ClienteService {
         c.setAuxiliarId(f.auxiliarId());
         if (limpar(f.senhaGov()) != null) {
             c.setSenhaGovCifrada(segredos.cifrar(f.senhaGov()));
+        }
+        if (c.getCpf() != null && !c.getCpf().equals(cpf)) {
+            c.setCpfConferidoEm(null);       // CPF novo: a conferência anterior não vale mais
+            c.setCpfConferidoPor(null);
         }
         c.setNome(nome);
         c.setCpf(cpf);

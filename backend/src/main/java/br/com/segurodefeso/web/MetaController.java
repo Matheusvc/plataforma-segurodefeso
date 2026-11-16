@@ -40,6 +40,7 @@ public class MetaController {
         m.put("sites", List.of(
             new Item("esocial", "eSocial", null, "https://login.esocial.gov.br/", false),
             new Item("emprega", "Emprega Brasil", null, "https://empregabrasil.mte.gov.br/", false),
+            new Item("receitacpf", "Consulta CPF (Receita)", null, "https://servicos.receita.fazenda.gov.br/servicos/cpf/consultasituacao/consultapublica.asp", false),
             new Item("ecac", "e-CAC", null, "https://cav.receita.fazenda.gov.br/", false),
             new Item("meuinss", "Meu INSS", null, "https://meu.inss.gov.br/", false),
             new Item("govbr", "gov.br", null, "https://www.gov.br/", false)));

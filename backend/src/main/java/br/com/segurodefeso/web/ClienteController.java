@@ -97,6 +97,9 @@ public class ClienteController {
                 if (!achou) return false;
             }
             if (filtro.equals("todos")) return true;
+            if (filtro.equals("cpf")) {
+                return !c.cpfConferido();
+            }
             if (filtro.equals("pendencia")) {
                 return !a.apto() && a.pendenteDeRequerer();
             }
@@ -142,6 +145,15 @@ public class ClienteController {
         return Map.of("mensagem", "Entrevista: " + nova.getNome() + ".");
     }
 
+    public record CpfConferidoReq(boolean conferido) {
+    }
+
+    @PutMapping("/clientes/{id}/cpf-conferido")
+    public Map<String, String> cpfConferido(@PathVariable Long id, @RequestBody CpfConferidoReq req) {
+        servico.conferirCpf(id, req.conferido(), atual.id());
+        return Map.of("mensagem", req.conferido() ? "CPF marcado como conferido." : "Conferência do CPF desfeita.");
+    }
+
     @GetMapping("/clientes/{id}/senha-gov")
     @PreAuthorize("hasAnyRole('ADMIN','ADVOGADO')")
     public Map<String, String> senhaGov(@PathVariable Long id) {
@@ -172,6 +184,7 @@ public class ClienteController {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("analise", a);
         m.put("whatsapp", Telefone.whatsapp(a.cliente().telefone()));
+        m.put("cpfConferidoPor", nomes.get(a.cliente().pessoal().cpfConferidoPor()));
         m.put("documentos", documentos.findByClienteIdOrderByEnviadoEmDesc(id).stream().map(d -> {
             Map<String, Object> x = new LinkedHashMap<>();
             x.put("id", d.getId());

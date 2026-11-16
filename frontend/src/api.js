@@ -2,11 +2,11 @@
 // A sessão fica num cookie; a proteção CSRF usa o cookie XSRF-TOKEN, devolvido no cabeçalho X-XSRF-TOKEN.
 
 const MENSAGENS = {
-  401: 'Sua sessão expirou. Entre de novo.',
+  401: 'Sua sessão expirou. Entre novamente.',
   403: 'Você não tem permissão para esta ação.',
   404: 'Não encontrado.',
   413: 'Arquivo muito grande.',
-  500: 'Erro no servidor. Tente de novo em instantes.',
+  500: 'Erro no servidor. Tente novamente.',
 }
 
 function lerCookie(nome) {

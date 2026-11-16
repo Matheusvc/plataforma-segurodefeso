@@ -75,6 +75,8 @@ public class Cliente {
     private Long auxiliarId;
     @Enumerated(EnumType.STRING)
     private Entrevista entrevista = Entrevista.A_CONFIRMAR;
+    private LocalDate cpfConferidoEm;
+    private Long cpfConferidoPor;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -178,4 +180,8 @@ public class Cliente {
     public void setAuxiliarId(Long auxiliarId) { this.auxiliarId = auxiliarId; }
     public Entrevista getEntrevista() { return entrevista; }
     public void setEntrevista(Entrevista entrevista) { this.entrevista = entrevista; }
+    public LocalDate getCpfConferidoEm() { return cpfConferidoEm; }
+    public void setCpfConferidoEm(LocalDate cpfConferidoEm) { this.cpfConferidoEm = cpfConferidoEm; }
+    public Long getCpfConferidoPor() { return cpfConferidoPor; }
+    public void setCpfConferidoPor(Long cpfConferidoPor) { this.cpfConferidoPor = cpfConferidoPor; }
 }

@@ -17,7 +17,7 @@ export default function Clientes() {
   }, [busca])
   const q = new URLSearchParams({ q: termo, filtro, arquivados: String(arquivados) })
   const { dados, erro } = useDados('/clientes?' + q.toString())
-  const opcoes = [['todos', 'Todos'], ['pendencia', 'Com pendência'], ...meta.etapas.map((e) => [e.id, e.nome])]
+  const opcoes = [['todos', 'Todos'], ['pendencia', 'Com pendência'], ['cpf', 'CPF não conferido'], ...meta.etapas.map((e) => [e.id, e.nome])]
   const nReq = meta.requisitos.length
   const nDoc = meta.documentos.filter((d) => d.flag).length
 
@@ -52,7 +52,10 @@ export default function Clientes() {
                   <tr key={c.id} className="hover:bg-slate-50">
                     <Td>
                       <Link to={`/clientes/${c.id}`} className="font-semibold text-marca-700 hover:underline">{c.nome}</Link>
-                      <div className="text-xs text-slate-500">CPF {cpfMascarado(c.cpf)}{!c.ativo && ' · arquivado'}</div>
+                      <div className="text-xs text-slate-500">
+                        CPF {cpfMascarado(c.cpf)}{!c.ativo && ' · arquivado'}
+                        {!c.pessoal.cpfConferidoEm && <span className="ml-1.5 font-semibold text-amber-700">· não conferido</span>}
+                      </div>
                     </Td>
                     <Td>{c.colonia || '—'}<div className="text-xs text-slate-500">{c.municipio}</div></Td>
                     <Td><Chip cor={a.requisitosNaoAtendidos.length === 0 && a.requisitosSemResposta === 0 ? 'ok' : a.essencialFalha ? 'erro' : 'aviso'}>{a.requisitosOk}/{nReq}</Chip></Td>

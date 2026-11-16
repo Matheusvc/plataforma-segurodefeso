@@ -156,7 +156,7 @@ public class PlanilhaService {
                 "Requisitos atendidos", "Pendências para requerer", "Entrevista", "Sexo", "RG", "Órgão emissor",
                 "Data da expedição", "Nome do pai", "Nome da mãe", "Estado civil", "Estado de origem", "Cidade de origem",
                 "Título de eleitor", "Nº da inscrição", "Data da afiliação", "CEP", "Logradouro", "Número", "Complemento",
-                "Bairro", "UF"),
+                "Bairro", "UF", "CPF conferido em"),
                 todos.stream().map(a -> {
                     ClienteDados c = a.cliente();
                     ClienteDados.Pessoal p = c.pessoal();
@@ -166,7 +166,8 @@ public class PlanilhaService {
                         a.requisitosOk() + "/" + Requisito.values().length, String.join("; ", a.bloqueios()),
                         c.entrevista().getNome(), p.sexo(), p.rg(), p.orgaoEmissor(), Datas.br(p.dataExpedicao()), p.nomePai(),
                         p.nomeMae(), p.estadoCivil(), p.estadoOrigem(), p.cidadeOrigem(), p.tituloEleitor(), p.inscricaoNumero(),
-                        Datas.br(p.dataAfiliacao()), p.cep(), p.logradouro(), p.numero(), p.complemento(), p.bairro(), p.uf());
+                        Datas.br(p.dataAfiliacao()), p.cep(), p.logradouro(), p.numero(), p.complemento(), p.bairro(), p.uf(),
+                        Datas.br(p.cpfConferidoEm()));
                 }).toList(), Set.of());
             case "dae" -> {
                 List<String> comps = Datas.competenciasDae(hoje.data());

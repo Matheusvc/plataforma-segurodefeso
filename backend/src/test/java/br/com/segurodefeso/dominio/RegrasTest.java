@@ -32,7 +32,8 @@ class RegrasTest {
         return new ClienteDados(1L, "Joana Pereira Matos", "52998224725", null, null, "(98) 98888-7777", null, "Raposa",
                 "Colônia Z-53", "MA-1", "05/2019", LocalDate.of(2027, 12, 31), null, LocalDate.of(2026, 12, 2), gov, null,
                 etapa, "2026/000999", null, "comprovante de residência", LocalDate.of(2026, 11, 19), "vínculo no CNIS", null,
-                tot, lib, null, null, true, reqs, docs, daes, recebido, entrevista, ClienteDados.Pessoal.vazio());
+                tot, lib, null, null, true, reqs, docs, daes, recebido, entrevista,
+                ClienteDados.Pessoal.vazio().comCpfConferido(LocalDate.of(2026, 11, 1), 1L));
     }
 
     static Map<Requisito, Boolean> todosSim() {
@@ -64,6 +65,25 @@ class RegrasTest {
                 EnumSet.copyOf(TipoDocumento.obrigatorios()), Map.of(), 0, 4, null), CFG, HOJE);
         assertTrue(a.apto(), a.bloqueios().toString());
         assertEquals(7, a.requisitosOk());
+    }
+
+    @Test
+    void cpfNaoConferidoBloqueiaOApto() {
+        ClienteDados completo = cliente(Etapa.A_REQUERER, "prata", todosSim(), EnumSet.copyOf(TipoDocumento.obrigatorios()),
+                Map.of(), 0, 4, null);
+        assertTrue(Analisador.analisar(completo, CFG, HOJE).apto());
+        ClienteDados semConferencia = new ClienteDados(completo.id(), completo.nome(), completo.cpf(), completo.nit(),
+                completo.nascimento(), completo.telefone(), completo.endereco(), completo.municipio(), completo.colonia(),
+                completo.rgpNumero(), completo.rgpDesde(), completo.rgpValidade(), completo.especie(),
+                completo.procuracaoValidade(), completo.govNivel(), completo.honorariosPct(), completo.etapa(),
+                completo.protocolo(), completo.situacao(), completo.exigenciaTexto(), completo.prazoData(),
+                completo.indeferimentoMotivo(), completo.cienciaData(), completo.parcelasTotal(), completo.parcelasLiberadas(),
+                completo.ultimaConferencia(), completo.observacoes(), completo.ativo(), completo.requisitos(),
+                completo.documentos(), completo.daes(), completo.honorariosRecebidos(), completo.entrevista(),
+                ClienteDados.Pessoal.vazio());
+        Analise a = Analisador.analisar(semConferencia, CFG, HOJE);
+        assertFalse(a.apto());
+        assertTrue(a.bloqueios().contains("CPF não conferido na Receita"));
     }
 
     @Test

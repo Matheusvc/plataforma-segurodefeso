@@ -44,6 +44,7 @@ export default function Ficha() {
       <p className="-mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-600">
         CPF {cpf(c.cpf)} · {c.municipio || 'município não informado'}{c.colonia && ` · ${c.colonia}`}
         <Chip cor={a.etapaCor}>{a.etapaNome}</Chip>
+        <Chip cor={c.pessoal.cpfConferidoEm ? 'ok' : 'aviso'}>{c.pessoal.cpfConferidoEm ? 'CPF conferido' : 'CPF não conferido'}</Chip>
         <Link to="/entrevistas" title="Alterar na tela Entrevistas"><Chip cor={entrevista.cor}>Entrevista: {entrevista.nome}</Chip></Link>
         {!c.ativo && <Chip>Arquivado</Chip>}
       </p>
@@ -62,7 +63,7 @@ export default function Ficha() {
           ))}
         </nav>
 
-        {aba === 'resumo' && <Resumo a={a} />}
+        {aba === 'resumo' && <Resumo a={a} por={dados.cpfConferidoPor} recarregar={recarregar} />}
         {aba === 'requisitos' && <Requisitos a={a} id={id} recarregar={recarregar} />}
         {aba === 'documentos' && <Documentos a={a} id={id} docs={dados.documentos} dae={dados.dae} docNome={docNome} recarregar={recarregar} />}
         {aba === 'dae' && (
@@ -103,10 +104,11 @@ export default function Ficha() {
   )
 }
 
-function Resumo({ a }) {
+function Resumo({ a, por, recarregar }) {
   const c = a.cliente
   const p = c.pessoal
-  const { gestor } = useAuth()
+  const { gestor, meta } = useAuth()
+  const receita = meta.sites.find((s) => s.id === 'receitacpf')?.extra
   const { dados: auxiliares } = useDados('/auxiliares')
   const { executar, ocupado } = useAcao()
   const [senha, setSenha] = useState(null)
@@ -143,6 +145,25 @@ function Resumo({ a }) {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-3">
             {campos.map(([k, v]) => <div key={k}><div className="text-xs text-slate-500">{k}</div><div className="font-semibold">{v}</div></div>)}
           </div>
+          {titulo === 'Cadastro' && (
+            <Item>
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold">Conferência do CPF</div>
+                <div className="text-[13px] text-slate-600">
+                  {p.cpfConferidoEm
+                    ? `Conferido na Receita em ${br(p.cpfConferidoEm)} por ${por || 'usuário removido'}.`
+                    : `Abra a consulta da Receita e informe o CPF ${cpf(c.cpf)}${c.nascimento ? ` e a data de nascimento ${br(c.nascimento)}` : ''}. Compare o nome com o documento e marque como conferido.`}
+                </div>
+              </div>
+              {!p.cpfConferidoEm && receita && (
+                <BotaoLink href={receita} target="_blank" rel="noopener noreferrer" variante="sec" pequeno>Abrir consulta da Receita ›</BotaoLink>
+              )}
+              <Botao variante={p.cpfConferidoEm ? 'neutro' : 'pri'} pequeno disabled={ocupado}
+                onClick={() => executar(() => api(`/clientes/${c.id}/cpf-conferido`, { metodo: 'PUT', corpo: { conferido: !p.cpfConferidoEm } }), recarregar)}>
+                {p.cpfConferidoEm ? 'Desfazer' : 'Marcar como conferido'}
+              </Botao>
+            </Item>
+          )}
           {titulo === 'Cadastro' && p.senhaGovCadastrada && (
             <Item>
               <div className="flex-1">

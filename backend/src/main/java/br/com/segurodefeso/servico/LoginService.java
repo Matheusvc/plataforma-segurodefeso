@@ -7,7 +7,7 @@ import br.com.segurodefeso.config.Hoje;
 import br.com.segurodefeso.entidade.LoginTentativa;
 import br.com.segurodefeso.repositorio.LoginTentativaRepo;
 
-/** Bloqueia o login por 15 minutos depois de 5 tentativas erradas. */
+/** Logins que serão realizados**/
 @Service
 public class LoginService {
 

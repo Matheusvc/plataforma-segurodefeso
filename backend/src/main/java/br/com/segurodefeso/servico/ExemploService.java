@@ -138,6 +138,9 @@ public class ExemploService {
                 documentos.save(d);
             }
             c.setEntrevista(e.dae().isEmpty() ? Entrevista.A_CONFIRMAR : Entrevista.CONFIRMADO);
+            if (e.docsOk()) {
+                c.setCpfConferidoEm(h);
+            }
             clientes.save(c);
             for (int k = 0; k < e.dae().length() && k < comps.size(); k++) {
                 char s = e.dae().charAt(k);

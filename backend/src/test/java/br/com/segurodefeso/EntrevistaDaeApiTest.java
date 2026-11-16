@@ -1,8 +1,10 @@
 package br.com.segurodefeso;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -96,6 +98,40 @@ class EntrevistaDaeApiTest {
         // DAE não aparece em Prazos
         mvc.perform(get("/api/prazos?tipo=DAE").with(admin()))
             .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void conferenciaDoCpf() throws Exception {
+        String resp = mvc.perform(post("/api/clientes").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Zeca Teste\",\"cpf\":\"529.982.247-25\",\"telefone\":\"(98) 96666-5555\","
+                    + "\"municipio\":\"Raposa\",\"rgpNumero\":\"MA-3\"}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        String id = resp.replaceAll(".*\"id\":(\\d+).*", "$1");
+
+        mvc.perform(get("/api/clientes/" + id).with(admin()))
+            .andExpect(jsonPath("$.analise.cliente.pessoal.cpfConferidoEm").value(nullValue()))
+            .andExpect(jsonPath("$.analise.bloqueios", hasItem("CPF não conferido na Receita")));
+        mvc.perform(get("/api/clientes?filtro=cpf").with(admin()))
+            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(1)));
+
+        mvc.perform(put("/api/clientes/" + id + "/cpf-conferido").with(admin()).with(csrf())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"conferido\":true}"))
+            .andExpect(status().isOk());
+        mvc.perform(get("/api/clientes/" + id).with(admin()))
+            .andExpect(jsonPath("$.analise.cliente.pessoal.cpfConferidoEm").value("2026-11-09"))
+            .andExpect(jsonPath("$.cpfConferidoPor").value("Administrador"))
+            .andExpect(jsonPath("$.analise.bloqueios", not(hasItem("CPF não conferido na Receita"))));
+        mvc.perform(get("/api/clientes?filtro=cpf").with(admin()))
+            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(0)));
+
+        // trocar o CPF invalida a conferência
+        mvc.perform(put("/api/clientes/" + id).with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Zeca Teste\",\"cpf\":\"390.533.447-05\",\"telefone\":\"(98) 96666-5555\","
+                    + "\"municipio\":\"Raposa\",\"rgpNumero\":\"MA-3\"}"))
+            .andExpect(status().isOk());
+        mvc.perform(get("/api/clientes/" + id).with(admin()))
+            .andExpect(jsonPath("$.analise.cliente.pessoal.cpfConferidoEm").value(nullValue()));
     }
 
     @Test

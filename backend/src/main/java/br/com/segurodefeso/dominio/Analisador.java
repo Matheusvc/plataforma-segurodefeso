@@ -68,6 +68,9 @@ public final class Analisador {
         if (!pendentes.isEmpty()) {
             bloqueios.add(pendentes.size() + " documento(s) pendente(s)");
         }
+        if (!c.cpfConferido()) {
+            bloqueios.add("CPF não conferido na Receita");
+        }
         if (!vencidos.isEmpty()) {
             bloqueios.add("DAE vencido: " + String.join(", ", vencidos.stream().map(Analise.DaeAberto::label).toList()));
         }
