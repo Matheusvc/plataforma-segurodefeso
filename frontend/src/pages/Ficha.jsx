@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { api, urlApi } from '../api.js'
+import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Alerta, Botao, BotaoLink, Campo, Card, Carregando, Chip, Item, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import ConferenciaCpf from '../components/ConferenciaCpf.jsx'
+import Documentos from '../components/Documentos.jsx'
 import { br, brl, competencia, cpf, hora } from '../util.js'
 
 const ABAS = [['resumo', 'Resumo'], ['requisitos', 'Requisitos'], ['documentos', 'Documentos'], ['dae', 'DAE'], ['linha', 'Linha do tempo']]
@@ -10,7 +12,7 @@ const ABAS = [['resumo', 'Resumo'], ['requisitos', 'Requisitos'], ['documentos',
 export default function Ficha() {
   const { id } = useParams()
   const [params, setParams] = useSearchParams()
-  const { gestor, meta } = useAuth()
+  const { gestor } = useAuth()
   const { dados, erro, recarregar } = useDados(`/clientes/${id}`)
   const { executar, ocupado } = useAcao()
   const aba = params.get('aba') || 'resumo'
@@ -20,7 +22,6 @@ export default function Ficha() {
   if (!dados) return <Carregando />
   const a = dados.analise
   const c = a.cliente
-  const docNome = Object.fromEntries(meta.documentos.map((d) => [d.id, d.nome]))
   const statusDae = Object.fromEntries(meta.statusDae.map((s) => [s.id, s]))
   const entrevista = meta.entrevistas.find((e) => e.id === c.entrevista) || { nome: '—', cor: 'neutro' }
   const daeAtivo = c.entrevista === 'CONFIRMADO'
@@ -65,7 +66,7 @@ export default function Ficha() {
 
         {aba === 'resumo' && <Resumo a={a} por={dados.cpfConferidoPor} recarregar={recarregar} />}
         {aba === 'requisitos' && <Requisitos a={a} id={id} recarregar={recarregar} />}
-        {aba === 'documentos' && <Documentos a={a} id={id} docs={dados.documentos} dae={dados.dae} docNome={docNome} recarregar={recarregar} />}
+        {aba === 'documentos' && <Documentos a={a} id={id} docs={dados.documentos} dae={dados.dae} recarregar={recarregar} />}
         {aba === 'dae' && (
           <div className="flex flex-col gap-3">
             {!daeAtivo && <Alerta cor="aviso">DAE só para clientes com entrevista confirmada. Confirme na tela <Link to="/entrevistas" className="underline">Entrevistas</Link>.</Alerta>}
@@ -107,8 +108,7 @@ export default function Ficha() {
 function Resumo({ a, por, recarregar }) {
   const c = a.cliente
   const p = c.pessoal
-  const { gestor, meta } = useAuth()
-  const receita = meta.sites.find((s) => s.id === 'receitacpf')?.extra
+  const { gestor } = useAuth()
   const { dados: auxiliares } = useDados('/auxiliares')
   const { executar, ocupado } = useAcao()
   const [senha, setSenha] = useState(null)
@@ -145,25 +145,7 @@ function Resumo({ a, por, recarregar }) {
           <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-4 gap-y-3 md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
             {campos.map(([k, v]) => <div key={k}><div className="text-xs text-slate-500">{k}</div><div className="font-semibold">{v}</div></div>)}
           </div>
-          {titulo === 'Cadastro' && (
-            <Item>
-              <div className="min-w-0 flex-1">
-                <div className="font-semibold">Conferência do CPF</div>
-                <div className="text-[13px] text-slate-600">
-                  {p.cpfConferidoEm
-                    ? `Conferido na Receita em ${br(p.cpfConferidoEm)} por ${por || 'usuário removido'}.`
-                    : `Abra a consulta da Receita e informe o CPF ${cpf(c.cpf)}${c.nascimento ? ` e a data de nascimento ${br(c.nascimento)}` : ''}. Compare o nome com o documento e marque como conferido.`}
-                </div>
-              </div>
-              {!p.cpfConferidoEm && receita && (
-                <BotaoLink href={receita} target="_blank" rel="noopener noreferrer" variante="sec" pequeno>Abrir consulta da Receita ›</BotaoLink>
-              )}
-              <Botao variante={p.cpfConferidoEm ? 'neutro' : 'pri'} pequeno disabled={ocupado}
-                onClick={() => executar(() => api(`/clientes/${c.id}/cpf-conferido`, { metodo: 'PUT', corpo: { conferido: !p.cpfConferidoEm } }), recarregar)}>
-                {p.cpfConferidoEm ? 'Desfazer' : 'Marcar como conferido'}
-              </Botao>
-            </Item>
-          )}
+          {titulo === 'Cadastro' && <ConferenciaCpf c={c} por={por} recarregar={recarregar} />}
           {titulo === 'Cadastro' && p.senhaGovCadastrada && (
             <Item>
               <div className="flex-1">
@@ -235,80 +217,6 @@ function Requisitos({ a, id, recarregar }) {
   )
 }
 
-function Documentos({ a, id, docs, dae, docNome, recarregar }) {
-  const { meta, gestor } = useAuth()
-  const { executar, ocupado } = useAcao()
-  const [tipo, setTipo] = useState('RG')
-  const [comp, setComp] = useState(dae[0]?.competencia || '')
-  const [arquivo, setArquivo] = useState(null)
-  const recebidos = new Set(a.cliente.documentos)
-
-  async function anexar(e) {
-    e.preventDefault()
-    if (!arquivo) return
-    const form = new FormData()
-    form.append('tipo', tipo)
-    if (tipo === 'COMPROVANTE_DAE') form.append('competencia', comp)
-    form.append('arquivo', arquivo)
-    await executar(() => api(`/clientes/${id}/documentos`, { metodo: 'POST', form }), () => {
-      e.target.reset()
-      setArquivo(null)
-      recarregar()
-    })
-  }
-
-  async function excluir(doc) {
-    if (!window.confirm(`Excluir ${doc.nome}?`)) return
-    await executar(() => api(`/documentos/${doc.id}`, { metodo: 'DELETE' }), recarregar)
-  }
-
-  return (
-    <div className="flex flex-wrap items-start gap-4">
-      <div className="flex min-w-0 flex-[2_1_380px] flex-col gap-2">
-        <h2 className="text-base font-semibold">Documentos obrigatórios</h2>
-        {meta.documentos.filter((d) => d.flag).map((d) => (
-          <Item key={d.id}>
-            <span className="flex-1 font-semibold">{d.nome}</span>
-            <Chip cor={recebidos.has(d.id) ? 'ok' : 'erro'}>{recebidos.has(d.id) ? 'Recebido' : 'Pendente'}</Chip>
-          </Item>
-        ))}
-        {a.documentosPendentes.length > 0 && <BotaoLink to={`/mensagens?cliente=${id}&modelo=DOCS`} variante="sec">Pedir pendentes no WhatsApp</BotaoLink>}
-      </div>
-      <div className="flex min-w-0 flex-[2_1_380px] flex-col gap-3">
-        <h2 className="text-base font-semibold">Anexar arquivo</h2>
-        <form onSubmit={anexar} className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
-          <Campo rotulo="Tipo de documento">
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
-              {meta.documentos.map((d) => <option key={d.id} value={d.id}>{d.nome}</option>)}
-            </select>
-          </Campo>
-          {tipo === 'COMPROVANTE_DAE' && (
-            <Campo rotulo="Competência do DAE pago">
-              <select value={comp} onChange={(e) => setComp(e.target.value)}>
-                {dae.map((d) => <option key={d.competencia} value={d.competencia}>{d.label}</option>)}
-              </select>
-            </Campo>
-          )}
-          <Campo rotulo="Arquivo (PDF ou foto, até 15 MB)">
-            <input type="file" required accept=".pdf,.jpg,.jpeg,.png,.webp,.heic" onChange={(e) => setArquivo(e.target.files[0] || null)} />
-          </Campo>
-          <Botao type="submit" disabled={ocupado || !arquivo}>Anexar</Botao>
-        </form>
-        <h2 className="mt-1 text-base font-semibold">Arquivos na pasta do cliente</h2>
-        {docs.map((d) => (
-          <Item key={d.id}>
-            <div className="min-w-0 flex-1">
-              <a href={urlApi(`/documentos/${d.id}`)} target="_blank" rel="noopener noreferrer" className="font-semibold text-marca-700 underline">{d.nome}</a>
-              <div className="text-[13px] text-slate-600">{docNome[d.tipo]}{d.competencia && ` ${competencia(d.competencia)}`} · {br(d.enviadoEm)} · {d.usuario || ''}</div>
-            </div>
-            {gestor && <Botao variante="perigo" pequeno onClick={() => excluir(d)}>Excluir</Botao>}
-          </Item>
-        ))}
-        {docs.length === 0 && <p className="text-sm text-slate-500">Nenhum arquivo ainda.</p>}
-      </div>
-    </div>
-  )
-}
 
 function Financeiro({ a, id, receb, recarregar }) {
   const { executar, ocupado } = useAcao()

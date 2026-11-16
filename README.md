@@ -149,7 +149,7 @@ cd backend
 
 ## Fluxo de trabalho
 
-1. **Triagem** (Cadastro → Novo cadastro): responde os requisitos; só depois abre o cadastro completo.
+1. **Novo cadastro** (Cadastro → Novo cadastro): um passo a passo único, sem sair da tela: Triagem → Cadastro → Documentos → Entrevista (com a conferência do CPF na Receita).
 2. **Entrevistas**: marque cada cliente como Não, Confirmado ou A confirmar.
 3. **DAE**: lançamento manual desde maio de 2026, só para clientes com entrevista confirmada (status Declarado ou Pago;
    competência sem lançamento conta como em aberto). O DAE não aparece em Prazos.

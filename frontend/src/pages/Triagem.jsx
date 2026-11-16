@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Alerta, Botao, Card, Chip, Item, Titulo, useAcao } from '../components/ui.jsx'
 
-export default function Triagem() {
+/** Passo 1 do cadastro: avalia os requisitos e entrega as respostas ao passo seguinte. */
+export default function Triagem({ aoContinuar }) {
   const { meta } = useAuth()
-  const navegar = useNavigate()
   const { executar, ocupado } = useAcao()
   const [resp, setResp] = useState({})
   const [resultado, setResultado] = useState(null)
@@ -18,7 +17,7 @@ export default function Triagem() {
 
   return (
     <>
-      <Titulo titulo="Triagem" sub="Primeiro passo do atendimento: responda os requisitos e veja se o pescador tem direito. Depois siga para o cadastro." />
+      <Titulo titulo="Triagem" sub="Responda os requisitos e veja se o pescador tem direito. Depois siga para o cadastro." />
       <div className="flex flex-wrap items-start gap-4">
         <Card className="flex min-w-0 flex-[3_1_520px] flex-col gap-2.5">
           {meta.requisitos.map((r) => (
@@ -48,7 +47,7 @@ export default function Triagem() {
                 <div className="mt-1">{resultado.texto}</div>
                 {resultado.itens.length > 0 && <ul className="mt-2 list-disc pl-5">{resultado.itens.map((t) => <li key={t}>{t}</li>)}</ul>}
               </Alerta>
-              <Botao onClick={() => navegar('/clientes/novo', { state: { respostas: resp, triagem: resultado.titulo } })}>
+              <Botao onClick={() => aoContinuar(resp, resultado.titulo)}>
                 Continuar para o Cadastro ›
               </Botao>
             </>

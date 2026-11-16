@@ -2,13 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
+import SeletorEntrevista from '../components/SeletorEntrevista.jsx'
 import { Card, Carregando, Chip, Pills, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
-
-const ATIVO = {
-  ok: 'border-green-700 bg-green-700 text-white',
-  erro: 'border-red-700 bg-red-700 text-white',
-  aviso: 'border-amber-500 bg-amber-500 text-white',
-}
 
 export default function Entrevistas() {
   const { meta } = useAuth()
@@ -53,16 +48,7 @@ export default function Entrevistas() {
                   </Td>
                   <Td><Chip cor={c.etapaCor}>{c.etapa}</Chip></Td>
                   <Td>
-                    <div className="flex flex-wrap gap-1.5" role="group" aria-label={`Entrevista de ${c.nome}`}>
-                      {meta.entrevistas.map((e) => (
-                        <button key={e.id} type="button" disabled={ocupado} onClick={() => marcar(c, e.id)}
-                          aria-pressed={c.entrevista === e.id}
-                          className={`min-h-[34px] rounded-lg border px-3 text-[13px] font-semibold disabled:opacity-60 ${c.entrevista === e.id
-                            ? ATIVO[e.cor] : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>
-                          {e.nome}
-                        </button>
-                      ))}
-                    </div>
+                    <SeletorEntrevista valor={c.entrevista} nome={c.nome} desabilitado={ocupado} aoMudar={(s) => marcar(c, s)} />
                   </Td>
                 </tr>
               ))}

@@ -6,7 +6,7 @@ import Inicio from './pages/Inicio.jsx'
 import Clientes from './pages/Clientes.jsx'
 import ClienteForm from './pages/ClienteForm.jsx'
 import Ficha from './pages/Ficha.jsx'
-import Triagem from './pages/Triagem.jsx'
+import NovoCadastro from './pages/NovoCadastro.jsx'
 import Entrevistas from './pages/Entrevistas.jsx'
 import Auxiliares from './pages/Auxiliares.jsx'
 import Status from './pages/Status.jsx'
@@ -38,10 +38,10 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/clientes" element={<Clientes />} />
-        <Route path="/clientes/novo" element={<ClienteForm />} />
+        <Route path="/clientes/novo" element={<NovoCadastro />} />
         <Route path="/clientes/:id" element={<Ficha key={local.pathname} />} />
         <Route path="/clientes/:id/editar" element={<ClienteForm />} />
-        <Route path="/triagem" element={<Triagem />} />
+        <Route path="/triagem" element={<Navigate to="/clientes/novo" replace />} />
         <Route path="/entrevistas" element={<Entrevistas />} />
         <Route path="/auxiliares" element={<Auxiliares />} />
         <Route path="/status" element={<Status />} />

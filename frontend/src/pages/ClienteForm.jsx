@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { Alerta, Botao, BotaoLink, Campo, Card, Carregando, Titulo, useAcao, useDados } from '../components/ui.jsx'
 import { br, cpf } from '../util.js'
@@ -69,11 +69,10 @@ function Secao({ titulo, children }) {
   )
 }
 
-export default function ClienteForm() {
+/** Cadastro completo. Novo: usado como passo 2 do assistente (recebe as respostas da triagem). Edição: rota própria. */
+export default function ClienteForm({ respostas, triagem, aoSalvar }) {
   const { id } = useParams()
   const novo = !id
-  const local = useLocation()
-  const respostas = local.state?.respostas
   const navegar = useNavigate()
   const { executar, ocupado } = useAcao()
   const [form, setForm] = useState(novo ? {} : null)
@@ -108,11 +107,10 @@ export default function ClienteForm() {
     const corpo = { ...resto, auxiliarId: form.auxiliarId ? Number(form.auxiliarId) : null, ...(novo ? { respostas } : {}) }
     await executar(
       () => (novo ? api('/clientes', { metodo: 'POST', corpo }) : api(`/clientes/${id}`, { metodo: 'PUT', corpo })),
-      (r) => navegar(novo ? `/clientes/${r.id}?aba=documentos` : `/clientes/${id}`),
+      (r) => (novo ? aoSalvar(r.id) : navegar(`/clientes/${id}`)),
     )
   }
 
-  if (novo && !respostas) return <Navigate to="/triagem" replace />
   if (!form) return <Carregando />
 
   function campo([k, rotulo, obrig, dica, tipo]) {
@@ -142,7 +140,7 @@ export default function ClienteForm() {
   return (
     <>
       <Titulo titulo={novo ? 'Cadastro' : 'Editar cadastro'} sub="Campos com * são obrigatórios. Datas no formato dd/mm/aaaa." />
-      {novo && local.state?.triagem && <Alerta cor="info">Triagem concluída: {local.state.triagem}. Agora complete o cadastro.</Alerta>}
+      {novo && triagem && <Alerta cor="info">Triagem concluída: {triagem}. Agora complete o cadastro.</Alerta>}
       <Card>
         <form onSubmit={salvar} className="flex flex-col gap-5">
           {SECOES.map(([titulo, conteudo]) => (
