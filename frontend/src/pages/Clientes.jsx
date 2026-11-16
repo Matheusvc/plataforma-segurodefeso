@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
 import { urlApi } from '../api.js'
 import { BotaoLink, Card, Carregando, Chip, Pills, Td, Th, Titulo, useDados } from '../components/ui.jsx'
@@ -8,7 +8,8 @@ import { cpfMascarado } from '../util.js'
 export default function Clientes() {
   const { meta } = useAuth()
   const [busca, setBusca] = useState('')
-  const [filtro, setFiltro] = useState('todos')
+  const [params] = useSearchParams()
+  const [filtro, setFiltro] = useState(params.get('filtro') || 'todos')
   const [arquivados, setArquivados] = useState(false)
   const [termo, setTermo] = useState('')
   useEffect(() => {
@@ -17,7 +18,10 @@ export default function Clientes() {
   }, [busca])
   const q = new URLSearchParams({ q: termo, filtro, arquivados: String(arquivados) })
   const { dados, erro } = useDados('/clientes?' + q.toString())
-  const opcoes = [['todos', 'Todos'], ['pendencia', 'Com pendência'], ['cpf', 'CPF não conferido'], ...meta.etapas.map((e) => [e.id, e.nome])]
+  const { dados: andamento } = useDados('/clientes/andamento')
+  const faltam = andamento?.total ?? 0
+  const opcoes = [['todos', 'Todos'], ['andamento', faltam ? `Falta finalizar (${faltam})` : 'Falta finalizar'], ['concluido', 'Finalizados'],
+    ['pendencia', 'Com pendência'], ['cpf', 'CPF não conferido'], ...meta.etapas.map((e) => [e.id, e.nome])]
   const nReq = meta.requisitos.length
   const nDoc = meta.documentos.filter((d) => d.flag).length
 
@@ -51,7 +55,8 @@ export default function Clientes() {
                 return (
                   <tr key={c.id} className="hover:bg-slate-50">
                     <Td>
-                      <Link to={`/clientes/${c.id}`} className="font-semibold text-marca-700 hover:underline">{c.nome}</Link>
+                      <Link to={c.pessoal.cadastroConcluido ? `/clientes/${c.id}` : `/clientes/novo?cliente=${c.id}`} className="font-semibold text-marca-700 hover:underline">{c.nome}</Link>
+                      {!c.pessoal.cadastroConcluido && <Chip cor="aviso" className="ml-2">Falta finalizar</Chip>}
                       <div className="text-xs text-slate-500">
                         CPF {cpfMascarado(c.cpf)}{!c.ativo && ' · arquivado'}
                         {!c.pessoal.cpfConferidoEm && <span className="ml-1.5 font-semibold text-amber-700">· não conferido</span>}
@@ -62,7 +67,11 @@ export default function Clientes() {
                     <Td><Chip cor={a.documentosPendentes.length === 0 ? 'ok' : a.documentosPendentes.length > 2 ? 'erro' : 'aviso'}>{docsOk}/{nDoc}</Chip></Td>
                     <Td><Chip cor={a.daeVencidos.length ? 'erro' : nDae ? 'aviso' : 'ok'}>{nDae ? `${nDae}${a.daeVencidos.length ? ' (vencido)' : ''}` : 'Em dia'}</Chip></Td>
                     <Td><Chip cor={a.etapaCor}>{a.etapaNome}</Chip></Td>
-                    <Td><BotaoLink to={`/clientes/${c.id}`} variante="neutro" pequeno>Ficha</BotaoLink></Td>
+                    <Td>
+                      {c.pessoal.cadastroConcluido
+                        ? <BotaoLink to={`/clientes/${c.id}`} variante="neutro" pequeno>Ficha</BotaoLink>
+                        : <BotaoLink to={`/clientes/novo?cliente=${c.id}`} pequeno>Continuar cadastro</BotaoLink>}
+                    </Td>
                   </tr>
                 )
               })}

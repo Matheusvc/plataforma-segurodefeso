@@ -114,12 +114,14 @@ function Secao({ titulo, children }) {
 }
 
 /** Cadastro completo. Novo: usado como passo 2 do assistente (recebe as respostas da triagem). Edição: rota própria. */
-export default function ClienteForm({ respostas, triagem, aoSalvar }) {
+export default function ClienteForm({ respostas, triagem, rascunho, aoRascunho, aoSalvar }) {
   const { id } = useParams()
   const novo = !id
   const navegar = useNavigate()
   const { executar, ocupado } = useAcao()
-  const [form, setForm] = useState(novo ? {} : null)
+  const [form, setForm] = useState(novo ? (rascunho || {}) : null)
+
+  useEffect(() => { if (novo) aoRascunho?.(form) }, [form])
   const [erros, setErros] = useState({})
   const aviso = useAviso()
   const { dados: auxiliares } = useDados('/auxiliares')
@@ -164,7 +166,7 @@ export default function ClienteForm({ respostas, triagem, aoSalvar }) {
       return
     }
     const { senhaCadastrada, ...resto } = form
-    const corpo = { ...resto, auxiliarId: form.auxiliarId ? Number(form.auxiliarId) : null, ...(novo ? { respostas } : {}) }
+    const corpo = { ...resto, auxiliarId: form.auxiliarId ? Number(form.auxiliarId) : null, ...(novo ? { respostas, emAndamento: true } : {}) }
     await executar(
       () => (novo ? api('/clientes', { metodo: 'POST', corpo }) : api(`/clientes/${id}`, { metodo: 'PUT', corpo })),
       (r) => (novo ? aoSalvar(r.id) : navegar(`/clientes/${id}`)),

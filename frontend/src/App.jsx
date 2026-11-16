@@ -38,7 +38,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Inicio />} />
         <Route path="/clientes" element={<Clientes />} />
-        <Route path="/clientes/novo" element={<NovoCadastro />} />
+        <Route path="/clientes/novo" element={<NovoCadastro key={local.search} />} />
         <Route path="/clientes/:id" element={<Ficha key={local.pathname} />} />
         <Route path="/clientes/:id/editar" element={<ClienteForm />} />
         <Route path="/triagem" element={<Navigate to="/clientes/novo" replace />} />

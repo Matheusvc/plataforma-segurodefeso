@@ -53,7 +53,7 @@ public class ClienteService {
                               String nomeMae, String estadoCivil, String estadoOrigem, String cidadeOrigem,
                               String tituloEleitor, String senhaGov, String inscricaoNumero, String dataAfiliacao,
                               String cep, String logradouro, String numero, String complemento, String bairro,
-                              String uf, Long auxiliarId, Map<String, Boolean> respostas) {
+                              String uf, Long auxiliarId, Map<String, Boolean> respostas, Boolean emAndamento) {
     }
 
     /** Respostas da tela Atualizar status. */
@@ -150,7 +150,7 @@ public class ClienteService {
                 c.getNomeMae(), c.getEstadoCivil(), c.getEstadoOrigem(), c.getCidadeOrigem(), c.getTituloEleitor(),
                 c.getInscricaoNumero(), c.getDataAfiliacao(), c.getCep(), c.getLogradouro(), c.getNumero(),
                 c.getComplemento(), c.getBairro(), c.getUf(), c.getAuxiliarId(), c.getSenhaGovCifrada() != null,
-                c.getCpfConferidoEm(), c.getCpfConferidoPor()));
+                c.getCpfConferidoEm(), c.getCpfConferidoPor(), c.isCadastroConcluido()));
     }
 
     // ------------------------------------------------------------------ cadastro
@@ -164,12 +164,31 @@ public class ClienteService {
         c.setCriadoEm(hoje.agora());
         c.setAtualizadoEm(hoje.agora());
         c.setEntrevista(Entrevista.A_CONFIRMAR);
+        c.setCadastroConcluido(!Boolean.TRUE.equals(f.emAndamento()));
         c = clientes.save(c);
-        eventos.registrar(c.getId(), usuarioId, "cadastro", "Cliente cadastrado na plataforma");
+        eventos.registrar(c.getId(), usuarioId, "cadastro", c.isCadastroConcluido()
+            ? "Cliente cadastrado na plataforma" : "Cadastro iniciado (falta finalizar documentos e entrevista)");
         if (f.respostas() != null && !f.respostas().isEmpty()) {
             salvarRequisitos(c.getId(), Requisito.respostas(f.respostas()), usuarioId);
         }
         return c;
+    }
+
+    /** Marca o cadastro como finalizado (sai da aba "Falta finalizar"). */
+    @Transactional
+    public void concluirCadastro(Long id, Long usuarioId) {
+        Cliente c = buscar(id);
+        if (c.isCadastroConcluido()) {
+            return;
+        }
+        c.setCadastroConcluido(true);
+        c.setAtualizadoEm(hoje.agora());
+        clientes.save(c);
+        eventos.registrar(id, usuarioId, "cadastro", "Cadastro finalizado");
+    }
+
+    public long totalEmAndamento() {
+        return clientes.countByAtivoTrueAndCadastroConcluidoFalse();
     }
 
     @Transactional

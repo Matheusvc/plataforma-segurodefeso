@@ -1,14 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Alerta, Botao, Card, Chip, Item, Titulo, useAcao } from '../components/ui.jsx'
 
 /** Passo 1 do cadastro: avalia os requisitos e entrega as respostas ao passo seguinte. */
-export default function Triagem({ aoContinuar }) {
+export default function Triagem({ aoContinuar, respostasIniciais, aoMudar }) {
   const { meta } = useAuth()
   const { executar, ocupado } = useAcao()
-  const [resp, setResp] = useState({})
+  const [resp, setResp] = useState(respostasIniciais || {})
   const [resultado, setResultado] = useState(null)
+
+  useEffect(() => { aoMudar?.(resp) }, [resp])
 
   async function avaliar() {
     const r = await executar(() => api('/triagem/avaliar', { metodo: 'POST', corpo: { respostas: resp } }))

@@ -1,22 +1,25 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
+import { useAuth } from '../auth.jsx'
 import ConferenciaCpf from '../components/ConferenciaCpf.jsx'
 import Documentos from '../components/Documentos.jsx'
 import SeletorEntrevista from '../components/SeletorEntrevista.jsx'
 import { Alerta, Botao, Card, Carregando, Chip, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { limparRascunho, lerRascunho, salvarRascunho } from '../rascunho.js'
 import ClienteForm from './ClienteForm.jsx'
 import Triagem from './Triagem.jsx'
 
 const PASSOS = ['Triagem', 'Cadastro', 'Documentos', 'Entrevista']
 
-function Passos({ atual, aoIr, travados }) {
+function Passos({ atual, aoIr, criado }) {
   return (
     <ol className="flex items-center gap-2 overflow-x-auto" aria-label="Passos do cadastro">
       {PASSOS.map((nome, i) => {
         const n = i + 1
         const feito = n < atual
-        const pode = feito && !travados.includes(n)
+        // Depois de salvo, os passos 1 e 2 travam; 3 e 4 ficam livres para ir e voltar.
+        const pode = criado ? n >= 3 && n !== atual : feito
         return (
           <li key={nome} className="flex shrink-0 items-center gap-2" aria-current={n === atual ? 'step' : undefined}>
             <button type="button" disabled={!pode} onClick={() => aoIr(n)}
@@ -33,35 +36,76 @@ function Passos({ atual, aoIr, travados }) {
   )
 }
 
-/** Cadastro de um novo cliente do começo ao fim, sem sair da tela: triagem, dados, documentos e entrevista. */
+const avisarMudanca = () => window.dispatchEvent(new Event('cadastros-mudaram'))
+
+/**
+ * Cadastro de um novo cliente do começo ao fim: triagem, dados, documentos e entrevista.
+ * O progresso não se perde ao trocar de menu: antes de salvar fica num rascunho desta aba;
+ * depois de salvo, o cliente aparece em Cadastro > Falta finalizar e dá para retomar (?cliente=ID).
+ */
 export default function NovoCadastro() {
+  const { usuario } = useAuth()
   const navegar = useNavigate()
+  const [params] = useSearchParams()
+  const retomar = params.get('cliente')
   const { executar, ocupado } = useAcao()
-  const [passo, setPasso] = useState(1)
-  const [triagem, setTriagem] = useState(null)
-  const [clienteId, setClienteId] = useState(null)
+  const [rascunho] = useState(() => (retomar ? null : lerRascunho(usuario.id)))
+  const [recuperado, setRecuperado] = useState(Boolean(rascunho))
+  const [passo, setPasso] = useState(retomar ? 3 : rascunho?.passo || 1)
+  const [respostas, setRespostas] = useState(rascunho?.respostas || {})
+  const [triagem, setTriagem] = useState(rascunho?.triagem || null)
+  const [formAtual, setFormAtual] = useState(rascunho?.form || null)
+  const [clienteId, setClienteId] = useState(retomar ? Number(retomar) : null)
   const { dados, recarregar } = useDados(clienteId ? `/clientes/${clienteId}` : null)
 
   const a = dados?.analise
   const c = a?.cliente
-  const criado = clienteId ? [1, 2] : []
+
+  useEffect(() => {
+    if (clienteId) return
+    const { senhaGov, senhaCadastrada, ...semSenha } = formAtual || {}
+    salvarRascunho(usuario.id, { passo, respostas, triagem, form: semSenha })
+  }, [passo, respostas, triagem, formAtual, clienteId, usuario.id])
 
   function recomecar() {
+    limparRascunho(usuario.id)
+    setRecuperado(false)
     setPasso(1)
+    setRespostas({})
     setTriagem(null)
+    setFormAtual(null)
     setClienteId(null)
+    navegar('/clientes/novo', { replace: true })
   }
+
+  const finalizar = (depois) =>
+    executar(() => api(`/clientes/${clienteId}/concluir-cadastro`, { metodo: 'PUT' }), () => {
+      avisarMudanca()
+      depois()
+    })
 
   const mudarEntrevista = (situacao) =>
     executar(() => api(`/clientes/${clienteId}/entrevista`, { metodo: 'PUT', corpo: { situacao } }), recarregar)
 
+  const continuarDepois = () => navegar('/clientes?filtro=andamento')
+
   return (
     <>
-      <Titulo titulo="Novo cadastro" sub="Passo a passo completo: triagem, dados do cliente, documentos e entrevista." />
-      <Passos atual={passo} aoIr={setPasso} travados={criado} />
+      <Titulo titulo="Novo cadastro" sub="Passo a passo completo: triagem, dados do cliente, documentos e entrevista. O que você preenche fica guardado se precisar sair." />
+      <Passos atual={passo} aoIr={setPasso} criado={Boolean(clienteId)} />
+
+      {recuperado && !clienteId && (
+        <Alerta cor="info">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>Rascunho recuperado: você parou no passo {passo} ({PASSOS[passo - 1]}).</span>
+            <Botao variante="neutro" pequeno onClick={recomecar}>Descartar e começar de novo</Botao>
+          </div>
+        </Alerta>
+      )}
 
       {passo === 1 && (
-        <Triagem aoContinuar={(respostas, titulo) => { setTriagem({ respostas, titulo }); setPasso(2) }} />
+        <Triagem respostasIniciais={respostas} aoMudar={setRespostas}
+          aoContinuar={(r, titulo) => { setRespostas(r); setTriagem(titulo); setPasso(2) }} />
       )}
 
       {passo === 2 && (
@@ -69,19 +113,23 @@ export default function NovoCadastro() {
           <div>
             <Botao variante="neutro" pequeno onClick={() => setPasso(1)}>‹ Voltar à triagem</Botao>
           </div>
-          <ClienteForm respostas={triagem.respostas} triagem={triagem.titulo}
-            aoSalvar={(id) => { setClienteId(id); setPasso(3) }} />
+          <ClienteForm respostas={respostas} triagem={triagem} rascunho={formAtual} aoRascunho={setFormAtual}
+            aoSalvar={(id) => { limparRascunho(usuario.id); setRecuperado(false); setClienteId(id); setPasso(3); avisarMudanca() }} />
         </>
       )}
 
       {passo === 3 && (!dados ? <Carregando /> : (
         <>
-          <Alerta cor="ok"><strong>{c.nome}</strong> cadastrado. Anexe os documentos agora ou deixe para depois.</Alerta>
+          <Alerta cor="ok">
+            {retomar ? 'Retomando o cadastro de ' : ''}<strong>{c.nome}</strong>{retomar ? '.' : ' cadastrado.'}{' '}
+            Anexe os documentos agora ou deixe para depois: ele fica em Cadastro › Falta finalizar.
+          </Alerta>
           <Card>
             <Documentos a={a} id={clienteId} docs={dados.documentos} dae={dados.dae} recarregar={recarregar} />
           </Card>
           <div className="flex flex-wrap items-center gap-3">
             <Botao onClick={() => setPasso(4)}>Continuar para a entrevista ›</Botao>
+            <Botao variante="neutro" onClick={continuarDepois}>Salvar e continuar depois</Botao>
             {a.documentosPendentes.length > 0 && <Chip cor="aviso">{a.documentosPendentes.length} documento(s) pendente(s)</Chip>}
           </div>
         </>
@@ -101,8 +149,9 @@ export default function NovoCadastro() {
             ? <Alerta cor="ok"><strong>Apto para requerer.</strong> Faça o pedido no Emprega Brasil e registre o protocolo em Atualizar status.</Alerta>
             : <Alerta cor="aviso"><strong>Ainda falta para requerer:</strong> {a.bloqueios.join('; ')}.</Alerta>}
           <div className="flex flex-wrap gap-2">
-            <Botao onClick={() => navegar(`/clientes/${clienteId}`)}>Concluir e abrir a ficha</Botao>
-            <Botao variante="sec" onClick={recomecar}>Cadastrar outro cliente</Botao>
+            <Botao disabled={ocupado} onClick={() => finalizar(() => navegar(`/clientes/${clienteId}`))}>Finalizar cadastro</Botao>
+            <Botao variante="sec" disabled={ocupado} onClick={() => finalizar(recomecar)}>Finalizar e cadastrar outro</Botao>
+            <Botao variante="neutro" onClick={continuarDepois}>Salvar e continuar depois</Botao>
           </div>
         </>
       ))}

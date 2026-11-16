@@ -135,6 +135,30 @@ class EntrevistaDaeApiTest {
     }
 
     @Test
+    void cadastroEmAndamentoFicaEmFaltaFinalizarAteConcluir() throws Exception {
+        String resp = mvc.perform(post("/api/clientes").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"nome\":\"Lia Andamento Souza\",\"cpf\":\"123.456.789-09\",\"telefone\":\"(98) 98888-1212\","
+                    + "\"municipio\":\"Raposa\",\"rgpNumero\":\"MA-9\",\"emAndamento\":true}"))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        String id = resp.replaceAll(".*\"id\":(\\d+).*", "$1");
+
+        mvc.perform(get("/api/clientes/andamento").with(admin()))
+            .andExpect(jsonPath("$.total").value(1));
+        mvc.perform(get("/api/clientes?filtro=andamento").with(admin()))
+            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(1)));
+        mvc.perform(get("/api/clientes?filtro=concluido").with(admin()))
+            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(0)));
+
+        mvc.perform(put("/api/clientes/" + id + "/concluir-cadastro").with(admin()).with(csrf()))
+            .andExpect(status().isOk());
+        mvc.perform(get("/api/clientes/andamento").with(admin()))
+            .andExpect(jsonPath("$.total").value(0));
+        mvc.perform(get("/api/clientes?filtro=concluido").with(admin()))
+            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(1)));
+    }
+
+    @Test
     void recusaTelefoneENitForaDoTamanho() throws Exception {
         String base = "\"nome\":\"Ana Maria Teste\",\"cpf\":\"168.995.350-09\",\"municipio\":\"Raposa\",\"rgpNumero\":\"MA-8\"";
         mvc.perform(post("/api/clientes").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)

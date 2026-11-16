@@ -97,6 +97,12 @@ public class ClienteController {
                 if (!achou) return false;
             }
             if (filtro.equals("todos")) return true;
+            if (filtro.equals("andamento")) {
+                return !c.pessoal().cadastroConcluido();
+            }
+            if (filtro.equals("concluido")) {
+                return c.pessoal().cadastroConcluido();
+            }
             if (filtro.equals("cpf")) {
                 return !c.cpfConferido();
             }
@@ -143,6 +149,18 @@ public class ClienteController {
         }
         servico.alterarEntrevista(id, nova, atual.id());
         return Map.of("mensagem", "Entrevista: " + nova.getNome() + ".");
+    }
+
+    /** Quantos cadastros iniciados pelo assistente ainda faltam finalizar (selo do menu). */
+    @GetMapping("/clientes/andamento")
+    public Map<String, Long> andamento() {
+        return Map.of("total", servico.totalEmAndamento());
+    }
+
+    @PutMapping("/clientes/{id}/concluir-cadastro")
+    public Map<String, String> concluirCadastro(@PathVariable Long id) {
+        servico.concluirCadastro(id, atual.id());
+        return Map.of("mensagem", "Cadastro finalizado.");
     }
 
     public record CpfConferidoReq(boolean conferido) {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import Avatar from './Avatar.jsx'
 import Icone from './Icone.jsx'
@@ -10,7 +11,7 @@ function Grupo({ children }) {
   return <div className="px-3 pb-1 pt-5 text-[11px] font-semibold uppercase tracking-widest text-[#8FB5BF]">{children}</div>
 }
 
-function Item({ to, icone, children, fim }) {
+function Item({ to, icone, children, fim, selo }) {
   return (
     <NavLink to={to} end={fim}
       className={({ isActive }) => `flex min-h-[40px] items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${isActive
@@ -18,6 +19,10 @@ function Item({ to, icone, children, fim }) {
         : 'text-[#DCEAEE] hover:bg-marca-800 hover:text-white'}`}>
       <Icone nome={icone} />
       <span className="truncate">{children}</span>
+      {selo > 0 && (
+        <span className="ml-auto rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-marca-950"
+          title={`${selo} cadastro(s) para finalizar`} aria-label={`${selo} cadastros para finalizar`}>{selo}</span>
+      )}
     </NavLink>
   )
 }
@@ -26,8 +31,15 @@ export default function Layout({ children }) {
   const { usuario, sair, gestor, admin } = useAuth()
   const local = useLocation()
   const [aberto, setAberto] = useState(false)
+  const [faltamFinalizar, setFaltamFinalizar] = useState(0)
 
   useEffect(() => { setAberto(false) }, [local.pathname])
+  useEffect(() => {
+    const atualizar = () => api('/clientes/andamento').then((r) => setFaltamFinalizar(r.total)).catch(() => {})
+    atualizar()
+    window.addEventListener('cadastros-mudaram', atualizar)
+    return () => window.removeEventListener('cadastros-mudaram', atualizar)
+  }, [local.pathname])
   useEffect(() => {
     if (!aberto) return undefined
     const fechar = (e) => { if (e.key === 'Escape') setAberto(false) }
@@ -67,7 +79,7 @@ export default function Layout({ children }) {
         </div>
 
         <Item to="/" icone="inicio" fim>Início</Item>
-        <Item to="/clientes" icone="cadastro">Cadastro</Item>
+        <Item to="/clientes" icone="cadastro" selo={faltamFinalizar}>Cadastro</Item>
         <Item to="/dae" icone="dae">DAE (eSocial)</Item>
         <Item to="/prazos" icone="prazos">Prazos</Item>
         <Item to="/entrevistas" icone="entrevistas">Entrevistas</Item>

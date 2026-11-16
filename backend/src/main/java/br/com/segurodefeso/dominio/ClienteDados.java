@@ -55,18 +55,19 @@ public record ClienteDados(
                           String nomeMae, String estadoCivil, String estadoOrigem, String cidadeOrigem,
                           String tituloEleitor, String inscricaoNumero, LocalDate dataAfiliacao, String cep,
                           String logradouro, String numero, String complemento, String bairro, String uf,
-                          Long auxiliarId, boolean senhaGovCadastrada, LocalDate cpfConferidoEm, Long cpfConferidoPor) {
+                          Long auxiliarId, boolean senhaGovCadastrada, LocalDate cpfConferidoEm, Long cpfConferidoPor,
+                          boolean cadastroConcluido) {
 
         public static Pessoal vazio() {
             return new Pessoal(null, null, null, null, null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, false, null, null);
+                null, null, null, null, null, false, null, null, true);
         }
 
         /** Cópia com o CPF marcado como conferido na Receita em {@code em}. */
         public Pessoal comCpfConferido(LocalDate em, Long usuarioId) {
             return new Pessoal(sexo, rg, orgaoEmissor, dataExpedicao, nomePai, nomeMae, estadoCivil, estadoOrigem,
                 cidadeOrigem, tituloEleitor, inscricaoNumero, dataAfiliacao, cep, logradouro, numero, complemento,
-                bairro, uf, auxiliarId, senhaGovCadastrada, em, usuarioId);
+                bairro, uf, auxiliarId, senhaGovCadastrada, em, usuarioId, cadastroConcluido);
         }
     }
 

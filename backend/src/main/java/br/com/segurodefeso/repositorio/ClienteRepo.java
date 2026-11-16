@@ -11,4 +11,5 @@ public interface ClienteRepo extends JpaRepository<Cliente, Long> {
     Optional<Cliente> findByCpf(String cpf);
     List<Cliente> findByAtivoTrueOrderByNomeAsc();
     List<Cliente> findAllByOrderByNomeAsc();
+    long countByAtivoTrueAndCadastroConcluidoFalse();
 }

@@ -77,6 +77,7 @@ public class Cliente {
     private Entrevista entrevista = Entrevista.A_CONFIRMAR;
     private LocalDate cpfConferidoEm;
     private Long cpfConferidoPor;
+    private boolean cadastroConcluido = true;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -182,6 +183,8 @@ public class Cliente {
     public void setEntrevista(Entrevista entrevista) { this.entrevista = entrevista; }
     public LocalDate getCpfConferidoEm() { return cpfConferidoEm; }
     public void setCpfConferidoEm(LocalDate cpfConferidoEm) { this.cpfConferidoEm = cpfConferidoEm; }
+    public boolean isCadastroConcluido() { return cadastroConcluido; }
+    public void setCadastroConcluido(boolean cadastroConcluido) { this.cadastroConcluido = cadastroConcluido; }
     public Long getCpfConferidoPor() { return cpfConferidoPor; }
     public void setCpfConferidoPor(Long cpfConferidoPor) { this.cpfConferidoPor = cpfConferidoPor; }
 }
