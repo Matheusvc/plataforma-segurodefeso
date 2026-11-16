@@ -54,7 +54,7 @@ export default function Layout({ children }) {
       {aberto && <div className="fixed inset-0 z-40 bg-black/50 md:hidden" onClick={() => setAberto(false)} aria-hidden="true" />}
 
       <nav id="menu-principal" aria-label="Menu principal"
-        className={`fixed inset-y-0 left-0 z-50 flex w-[270px] flex-col gap-0.5 overflow-y-auto bg-marca-900 px-3 py-4 text-white transition-transform duration-200 md:sticky md:top-0 md:z-auto md:h-screen md:w-[250px] md:shrink-0 md:translate-x-0 ${aberto ? 'translate-x-0' : '-translate-x-full'}`}>
+        className={`barra-escura fixed inset-y-0 left-0 z-50 flex w-[270px] flex-col gap-0.5 overflow-y-auto bg-marca-900 px-3 py-4 text-white transition-transform duration-200 md:sticky md:top-0 md:z-auto md:h-screen md:w-[250px] md:shrink-0 md:translate-x-0 ${aberto ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-start justify-between px-3 pb-3">
           <div>
             <div className="text-lg font-bold leading-tight">Seguro-Defeso</div>
