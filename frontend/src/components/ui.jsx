@@ -22,7 +22,7 @@ export function Chip({ cor = 'neutro', children, className = '' }) {
 
 export function Card({ children, className = '', semPad = false, ...resto }) {
   return (
-    <section className={`rounded-xl border border-borda bg-white ${semPad ? '' : 'p-5'} ${className}`} {...resto}>
+    <section className={`rounded-xl border border-borda bg-white shadow-sm ${semPad ? '' : 'p-5'} ${className}`} {...resto}>
       {children}
     </section>
   )
@@ -90,8 +90,8 @@ export function Titulo({ titulo, sub, children }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h1 className="text-[25px] font-bold tracking-tight">{titulo}</h1>
-        {sub && <p className="mt-1.5 max-w-3xl text-sm text-slate-600">{sub}</p>}
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">{titulo}</h1>
+        {sub && <p className="mt-1 max-w-3xl text-sm text-slate-500">{sub}</p>}
       </div>
       {children}
     </div>
@@ -107,7 +107,7 @@ export function Item({ children, className = '' }) {
 }
 
 export function Th({ children }) {
-  return <th className="whitespace-nowrap border-b border-slate-200 px-3.5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">{children}</th>
+  return <th className="whitespace-nowrap border-b border-slate-200 bg-slate-50 px-3.5 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{children}</th>
 }
 
 export function Td({ children, className = '' }) {

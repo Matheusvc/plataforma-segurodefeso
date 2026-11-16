@@ -142,7 +142,7 @@ function Resumo({ a, por, recarregar }) {
       {grupos.map(([titulo, campos]) => (
         <section key={titulo} className="flex flex-col gap-2">
           <h3 className="text-xs font-bold uppercase tracking-wide text-marca-900">{titulo}</h3>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-x-4 gap-y-3">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-x-4 gap-y-3 md:grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
             {campos.map(([k, v]) => <div key={k}><div className="text-xs text-slate-500">{k}</div><div className="font-semibold">{v}</div></div>)}
           </div>
           {titulo === 'Cadastro' && (

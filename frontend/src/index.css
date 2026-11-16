@@ -3,8 +3,20 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-fundo text-slate-900 antialiased;
+  }
+  button:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-marca-600;
   }
   input[type='text'],
   input[type='email'],
@@ -13,9 +25,20 @@
   input[type='number'],
   select,
   textarea {
-    @apply min-h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:border-marca-700 focus:outline focus:outline-2 focus:outline-marca-100;
+    @apply min-h-[42px] w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-marca-700 focus:outline focus:outline-2 focus:outline-marca-100;
+  }
+  input:read-only {
+    @apply bg-slate-50 text-slate-600;
   }
   textarea {
     @apply py-2;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    * {
+      transition-duration: 0.01ms !important;
+    }
   }
 }

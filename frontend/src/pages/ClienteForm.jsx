@@ -169,7 +169,7 @@ export default function ClienteForm() {
               )}
             </Secao>
           ))}
-          <div className="flex flex-wrap gap-2">
+          <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-wrap gap-2 rounded-b-xl border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur">
             <Botao type="submit" disabled={ocupado}>{novo ? 'Cadastrar' : 'Salvar alterações'}</Botao>
             <BotaoLink to={novo ? '/clientes' : `/clientes/${id}`} variante="neutro">Cancelar</BotaoLink>
           </div>
