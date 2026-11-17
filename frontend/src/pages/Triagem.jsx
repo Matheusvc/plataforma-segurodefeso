@@ -3,8 +3,11 @@ import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import { Alerta, Botao, Card, Chip, Item, Titulo, useAcao } from '../components/ui.jsx'
 
-/** Passo 1 do cadastro: avalia os requisitos e entrega as respostas ao passo seguinte. */
-export default function Triagem({ aoContinuar, respostasIniciais, aoMudar }) {
+/**
+ * Passo 1 do cadastro: avalia os requisitos e entrega as respostas ao passo seguinte.
+ * Com aoSalvar (cliente já cadastrado), o botão grava as respostas no servidor.
+ */
+export default function Triagem({ aoContinuar, respostasIniciais, aoMudar, aoSalvar }) {
   const { meta } = useAuth()
   const { executar, ocupado } = useAcao()
   const [resp, setResp] = useState(respostasIniciais || {})
@@ -39,7 +42,10 @@ export default function Triagem({ aoContinuar, respostasIniciais, aoMudar }) {
             </Item>
           ))}
           <p className="text-xs text-slate-500">{meta.baseLegal}</p>
-          <div><Botao onClick={avaliar} disabled={ocupado}>Ver resultado</Botao></div>
+          <div className="flex flex-wrap gap-2">
+            <Botao onClick={avaliar} disabled={ocupado} variante={aoSalvar ? 'neutro' : 'pri'}>Ver resultado</Botao>
+            {aoSalvar && <Botao onClick={() => aoSalvar(resp)} disabled={ocupado}>Salvar respostas e continuar ›</Botao>}
+          </div>
         </Card>
         <div className="flex min-w-0 flex-[2_1_320px] flex-col gap-4">
           {resultado && (
@@ -49,9 +55,11 @@ export default function Triagem({ aoContinuar, respostasIniciais, aoMudar }) {
                 <div className="mt-1">{resultado.texto}</div>
                 {resultado.itens.length > 0 && <ul className="mt-2 list-disc pl-5">{resultado.itens.map((t) => <li key={t}>{t}</li>)}</ul>}
               </Alerta>
-              <Botao onClick={() => aoContinuar(resp, resultado.titulo)}>
-                Continuar para o Cadastro ›
-              </Botao>
+              {!aoSalvar && (
+                <Botao onClick={() => aoContinuar(resp, resultado.titulo)}>
+                  Continuar para o Cadastro ›
+                </Botao>
+              )}
             </>
           )}
           <Card>

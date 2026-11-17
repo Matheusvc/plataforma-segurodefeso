@@ -114,20 +114,21 @@ function Secao({ titulo, children }) {
 }
 
 /** Cadastro completo. Novo: usado como passo 2 do assistente (recebe as respostas da triagem). Edição: rota própria. */
-export default function ClienteForm({ respostas, triagem, rascunho, aoRascunho, aoSalvar }) {
-  const { id } = useParams()
+export default function ClienteForm({ clienteId, respostas, triagem, rascunho, aoRascunho, aoSalvar, aoCancelar }) {
+  const { id: idDaRota } = useParams()
+  const id = clienteId ?? idDaRota
   const novo = !id
   const navegar = useNavigate()
   const { executar, ocupado } = useAcao()
-  const [form, setForm] = useState(novo ? (rascunho || {}) : null)
+  const [form, setForm] = useState(rascunho || (novo ? {} : null))
 
-  useEffect(() => { if (novo) aoRascunho?.(form) }, [form])
+  useEffect(() => { if (form) aoRascunho?.(form) }, [form])
   const [erros, setErros] = useState({})
   const aviso = useAviso()
   const { dados: auxiliares } = useDados('/auxiliares')
 
   useEffect(() => {
-    if (novo) return
+    if (novo || rascunho) return
     api(`/clientes/${id}`).then((f) => {
       const c = f.analise.cliente
       const dados = { ...c, ...c.pessoal }
@@ -169,7 +170,7 @@ export default function ClienteForm({ respostas, triagem, rascunho, aoRascunho, 
     const corpo = { ...resto, auxiliarId: form.auxiliarId ? Number(form.auxiliarId) : null, ...(novo ? { respostas, emAndamento: true } : {}) }
     await executar(
       () => (novo ? api('/clientes', { metodo: 'POST', corpo }) : api(`/clientes/${id}`, { metodo: 'PUT', corpo })),
-      (r) => (novo ? aoSalvar(r.id) : navegar(`/clientes/${id}`)),
+      (r) => (aoSalvar ? aoSalvar(novo ? r.id : id) : navegar(`/clientes/${id}`)),
     )
   }
 
@@ -238,7 +239,9 @@ export default function ClienteForm({ respostas, triagem, rascunho, aoRascunho, 
           ))}
           <div className="sticky bottom-0 -mx-5 -mb-5 flex flex-wrap gap-2 rounded-b-xl border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur">
             <Botao type="submit" disabled={ocupado}>{novo ? 'Cadastrar' : 'Salvar alterações'}</Botao>
-            <BotaoLink to={novo ? '/clientes' : `/clientes/${id}`} variante="neutro">Cancelar</BotaoLink>
+            {aoCancelar
+              ? <Botao variante="neutro" onClick={aoCancelar}>Cancelar</Botao>
+              : <BotaoLink to={novo ? '/clientes' : `/clientes/${id}`} variante="neutro">Cancelar</BotaoLink>}
           </div>
         </form>
       </Card>

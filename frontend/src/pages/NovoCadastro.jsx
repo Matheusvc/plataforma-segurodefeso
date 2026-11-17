@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
@@ -18,8 +18,8 @@ function Passos({ atual, aoIr, criado }) {
       {PASSOS.map((nome, i) => {
         const n = i + 1
         const feito = n < atual
-        // Depois de salvo, os passos 1 e 2 travam; 3 e 4 ficam livres para ir e voltar.
-        const pode = criado ? n >= 3 && n !== atual : feito
+        // Depois de salvo, todos os passos ficam livres para ir e voltar; antes, só os já concluídos.
+        const pode = criado ? n !== atual : feito
         return (
           <li key={nome} className="flex shrink-0 items-center gap-2" aria-current={n === atual ? 'step' : undefined}>
             <button type="button" disabled={!pode} onClick={() => aoIr(n)}
@@ -56,10 +56,19 @@ export default function NovoCadastro() {
   const [triagem, setTriagem] = useState(rascunho?.triagem || null)
   const [formAtual, setFormAtual] = useState(rascunho?.form || null)
   const [clienteId, setClienteId] = useState(retomar ? Number(retomar) : null)
+  const [formEdicao, setFormEdicao] = useState(null)   // edições não salvas do cadastro de um cliente já criado
   const { dados, recarregar } = useDados(clienteId ? `/clientes/${clienteId}` : null)
+  const respostasCarregadas = useRef(false)
 
   const a = dados?.analise
   const c = a?.cliente
+
+  // Ao retomar um cadastro, as respostas da triagem vêm do servidor.
+  useEffect(() => {
+    if (!c || respostasCarregadas.current) return
+    respostasCarregadas.current = true
+    if (Object.keys(respostas).length === 0) setRespostas(c.requisitos || {})
+  }, [c])
 
   useEffect(() => {
     if (clienteId) return
@@ -74,9 +83,18 @@ export default function NovoCadastro() {
     setRespostas({})
     setTriagem(null)
     setFormAtual(null)
+    setFormEdicao(null)
     setClienteId(null)
+    respostasCarregadas.current = false
     navegar('/clientes/novo', { replace: true })
   }
+
+  const salvarTriagem = (r) =>
+    executar(() => api(`/clientes/${clienteId}/requisitos`, { metodo: 'PUT', corpo: r }), () => {
+      setRespostas(r)
+      recarregar()
+      setPasso(2)
+    })
 
   const finalizar = (depois) =>
     executar(() => api(`/clientes/${clienteId}/concluir-cadastro`, { metodo: 'PUT' }), () => {
@@ -104,11 +122,30 @@ export default function NovoCadastro() {
       )}
 
       {passo === 1 && (
-        <Triagem respostasIniciais={respostas} aoMudar={setRespostas}
-          aoContinuar={(r, titulo) => { setRespostas(r); setTriagem(titulo); setPasso(2) }} />
+        <>
+          {clienteId && (
+            <Alerta cor="info">
+              Editando as respostas da triagem{c ? ` de ${c.nome}` : ''}. Salve para atualizar os requisitos do cliente;
+              se mudar de passo sem salvar, as respostas ficam como você deixou.
+            </Alerta>
+          )}
+          <Triagem respostasIniciais={respostas} aoMudar={setRespostas}
+            aoSalvar={clienteId ? salvarTriagem : undefined}
+            aoContinuar={(r, titulo) => { setRespostas(r); setTriagem(titulo); setPasso(2) }} />
+        </>
       )}
 
-      {passo === 2 && (
+      {passo === 2 && (clienteId ? (
+        <>
+          <Alerta cor="info">
+            Editando o cadastro{c ? ` de ${c.nome}` : ''}. Suas alterações só valem depois de salvar;
+            se mudar de passo sem salvar, o que você digitou continua aqui.
+          </Alerta>
+          <ClienteForm clienteId={clienteId} rascunho={formEdicao} aoRascunho={setFormEdicao}
+            aoCancelar={() => setPasso(3)}
+            aoSalvar={() => { setFormEdicao(null); recarregar(); setPasso(3); avisarMudanca() }} />
+        </>
+      ) : (
         <>
           <div>
             <Botao variante="neutro" pequeno onClick={() => setPasso(1)}>‹ Voltar à triagem</Botao>
@@ -116,7 +153,7 @@ export default function NovoCadastro() {
           <ClienteForm respostas={respostas} triagem={triagem} rascunho={formAtual} aoRascunho={setFormAtual}
             aoSalvar={(id) => { limparRascunho(usuario.id); setRecuperado(false); setClienteId(id); setPasso(3); avisarMudanca() }} />
         </>
-      )}
+      ))}
 
       {passo === 3 && (!dados ? <Carregando /> : (
         <>
