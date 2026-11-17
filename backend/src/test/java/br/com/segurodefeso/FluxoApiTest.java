@@ -72,9 +72,9 @@ class FluxoApiTest {
 
         mvc.perform(get("/api/clientes").with(admin()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(1)))
-            .andExpect(jsonPath("$[0].cliente.etapa").value("DOCUMENTACAO"))
-            .andExpect(jsonPath("$[0].apto").value(false));
+            .andExpect(jsonPath("$.itens", hasSize(1)))
+            .andExpect(jsonPath("$.itens[0].cliente.etapa").value("DOCUMENTACAO"))
+            .andExpect(jsonPath("$.itens[0].apto").value(false));
 
         // exigência com prazo aparece nos prazos
         mvc.perform(post("/api/clientes/" + id + "/status").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
@@ -82,8 +82,8 @@ class FluxoApiTest {
             .andExpect(status().isOk());
         mvc.perform(get("/api/prazos?tipo=Exigência").with(admin()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].dias").value(10))
-            .andExpect(jsonPath("$[0].falta").value("em 10 dia(s)"));
+            .andExpect(jsonPath("$.itens[0].dias").value(10))
+            .andExpect(jsonPath("$.itens[0].falta").value("em 10 dia(s)"));
 
         // deferido -> honorários (30% de R$ 1.621 por parcela)
         mvc.perform(post("/api/clientes/" + id + "/status").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)

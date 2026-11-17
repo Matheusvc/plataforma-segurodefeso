@@ -20,7 +20,7 @@ export default function Prazos() {
           <table className="w-full min-w-[760px] border-collapse">
             <thead><tr><Th>Data</Th><Th>Tipo</Th><Th>Cliente</Th><Th>Descrição</Th><Th>Situação</Th></tr></thead>
             <tbody>
-              {dados.map((p, i) => (
+              {dados.itens.map((p, i) => (
                 <tr key={i}>
                   <Td><strong>{p.dataBr}</strong></Td>
                   <Td><Chip cor={p.cor === 'neutro' ? 'info' : p.cor}>{p.tipo}</Chip></Td>
@@ -29,9 +29,14 @@ export default function Prazos() {
                   <Td><Chip cor={p.cor}>{p.falta}</Chip></Td>
                 </tr>
               ))}
-              {dados.length === 0 && <tr><Td className="py-6 text-slate-500">Nenhum prazo neste filtro.</Td></tr>}
+              {dados.itens.length === 0 && <tr><Td className="py-6 text-slate-500">Nenhum prazo neste filtro.</Td></tr>}
             </tbody>
           </table>
+          {dados.total > dados.itens.length && (
+            <p className="border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
+              Mostrando os {dados.itens.length.toLocaleString('pt-BR')} mais urgentes de {dados.total.toLocaleString('pt-BR')}. Exporte a planilha para ver todos.
+            </p>
+          )}
         </Card>
       )}
     </>

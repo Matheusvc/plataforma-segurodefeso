@@ -49,6 +49,7 @@ import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Prazos;
 import br.com.segurodefeso.dominio.Requisito;
+import br.com.segurodefeso.dominio.Telefone;
 import static br.com.segurodefeso.dominio.Texto.vazio;
 import br.com.segurodefeso.entidade.Cliente;
 import br.com.segurodefeso.repositorio.ClienteRepo;
@@ -66,9 +67,12 @@ public class PlanilhaService {
     public record LinhaImportacao(int linha, Map<String, String> dados, List<String> erros, List<String> avisos, String acao) {
     }
 
+    /** Prévia da importação. Na resposta, registros traz só uma amostra (erros primeiro); totalLinhas é o total. */
     public record Previa(String token, String arquivo, List<String> colunas, List<String> naoEncontradas,
-                         Map<String, Long> totais, List<LinhaImportacao> registros) {
+                         Map<String, Long> totais, List<LinhaImportacao> registros, int totalLinhas) {
     }
+
+    static final int LIMITE_PREVIA = 500;
 
     private record PreviaGuardada(Long usuarioId, LocalDateTime criadaEm, Previa previa) {
     }
@@ -357,7 +361,7 @@ public class PlanilhaService {
             throw new RegraException("A planilha precisa ter as colunas Nome e CPF. Use a planilha modelo como referência.");
         }
         Set<String> existentes = new HashSet<>();
-        clientes.findAll().forEach(c -> existentes.add(c.getCpf()));
+        existentes.addAll(clientes.todosOsCpfs());
         Set<String> vistos = new HashSet<>();
         List<LinhaImportacao> registros = new ArrayList<>();
         for (int n = 1; n < linhas.size(); n++) {
@@ -381,6 +385,18 @@ public class PlanilhaService {
                     d.put(campo, "");
                 }
             }
+            if (!d.getOrDefault("telefone", "").isBlank() && !Telefone.valido(d.get("telefone"))) {
+                avisos.add("telefone inválido (ignorado)");
+                d.put("telefone", "");
+            }
+            if (!d.getOrDefault("nit", "").isBlank() && d.get("nit").replaceAll("\\D", "").length() != 11) {
+                avisos.add("NIT/PIS inválido (ignorado)");
+                d.put("nit", "");
+            }
+            if (!d.getOrDefault("cep", "").isBlank() && d.get("cep").replaceAll("\\D", "").length() != 8) {
+                avisos.add("CEP inválido (ignorado)");
+                d.put("cep", "");
+            }
             if (d.getOrDefault("municipio", "").isBlank()) avisos.add("sem município");
             if (d.getOrDefault("rgpNumero", "").isBlank()) avisos.add("sem nº do RGP");
             String acao = !erros.isEmpty() ? "erro" : (existentes.contains(cpf) ? "atualizar" : "novo");
@@ -391,11 +407,15 @@ public class PlanilhaService {
             totais.put(k, registros.stream().filter(r -> r.acao().equals(k)).count());
         }
         String token = UUID.randomUUID().toString();
-        Previa p = new Previa(token, nome, mapa.keySet().stream().map(ROTULOS::get).toList(),
-            COLUNAS.keySet().stream().filter(c -> !mapa.containsKey(c)).map(ROTULOS::get).toList(), totais, registros);
+        List<String> colunas = mapa.keySet().stream().map(ROTULOS::get).toList();
+        List<String> naoEncontradas = COLUNAS.keySet().stream().filter(c -> !mapa.containsKey(c)).map(ROTULOS::get).toList();
+        Previa completa = new Previa(token, nome, colunas, naoEncontradas, totais, registros, registros.size());
         previas.entrySet().removeIf(e -> e.getValue().criadaEm().isBefore(hoje.agora().minusMinutes(30)));
-        previas.put(token, new PreviaGuardada(usuarioId, hoje.agora(), p));
-        return p;
+        previas.put(token, new PreviaGuardada(usuarioId, hoje.agora(), completa));
+        List<LinhaImportacao> amostra = java.util.stream.Stream.concat(
+                registros.stream().filter(r -> r.acao().equals("erro")), registros.stream().filter(r -> !r.acao().equals("erro")))
+            .limit(LIMITE_PREVIA).toList();
+        return new Previa(token, nome, colunas, naoEncontradas, totais, amostra, registros.size());
     }
 
     @Transactional

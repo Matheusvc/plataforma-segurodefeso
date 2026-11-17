@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
-import { Botao, Campo, Card, Item, Titulo, useAcao, useDados } from '../components/ui.jsx'
-import { mascaras } from '../formato.js'
+import { Botao, Campo, Card, Item, Titulo, useAcao, useAviso, useDados } from '../components/ui.jsx'
+import { mascaras, validadores } from '../formato.js'
 import { br } from '../util.js'
 
 const VAZIO = { especie: '', regiao: '', portaria: '', inicio: '', fim: '', prazoRequerimento: '' }
@@ -11,10 +11,22 @@ export default function Defesos() {
   const { gestor } = useAuth()
   const { dados, recarregar } = useDados('/defesos')
   const { executar, ocupado } = useAcao()
+  const aviso = useAviso()
   const [f, setF] = useState(VAZIO)
 
   async function salvar(e) {
     e.preventDefault()
+    const data = validadores.data({ min: 2000, max: 2100 })
+    const lerBr = (t) => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(t || ''); return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null }
+    const problema = (f.especie.trim() ? '' : 'Informe a espécie.')
+      || (!f.inicio ? 'Informe o início do defeso.' : data(f.inicio))
+      || (!f.prazoRequerimento ? 'Informe o prazo final para requerer.' : data(f.prazoRequerimento))
+      || data(f.fim)
+      || (f.fim && lerBr(f.fim) < lerBr(f.inicio) ? 'O fim do defeso não pode ser antes do início.' : '')
+    if (problema) {
+      aviso.erro(problema)
+      return
+    }
     await executar(() => api('/defesos', { metodo: 'POST', corpo: f }), () => { setF(VAZIO); recarregar() })
   }
 
@@ -24,7 +36,7 @@ export default function Defesos() {
   }
 
   const campo = (k, rotulo, obrig, dica) => (
-    <Campo rotulo={rotulo} obrigatorio={obrig}><input type="text" required={obrig} placeholder={dica} value={f[k]} onChange={(e) => setF({ ...f, [k]: dica === 'dd/mm/aaaa' ? mascaras.data(e.target.value) : e.target.value })} /></Campo>
+    <Campo rotulo={rotulo} obrigatorio={obrig}><input type="text" maxLength={k === 'regiao' ? 300 : k === 'portaria' ? 60 : k === 'especie' ? 120 : 10} inputMode={dica === 'dd/mm/aaaa' ? 'numeric' : undefined} placeholder={dica} value={f[k]} onChange={(e) => setF({ ...f, [k]: dica === 'dd/mm/aaaa' ? mascaras.data(e.target.value) : e.target.value })} /></Campo>
   )
 
   return (
@@ -32,7 +44,7 @@ export default function Defesos() {
       <Titulo titulo="Defesos" sub="Cadastre as datas de cada portaria. O início e o prazo final para requerer entram automaticamente na tela Prazos." />
       <div className="flex flex-wrap items-start gap-4">
         <Card className="min-w-0 flex-[3_1_520px]">
-          <form onSubmit={salvar} className="flex flex-col gap-4">
+          <form onSubmit={salvar} noValidate className="flex flex-col gap-4">
             <h2 className="text-base font-semibold">Cadastrar defeso (conforme a portaria)</h2>
             <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5">
               {campo('especie', 'Espécie', true)}

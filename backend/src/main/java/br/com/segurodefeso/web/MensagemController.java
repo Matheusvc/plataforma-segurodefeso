@@ -31,6 +31,7 @@ public class MensagemController {
         Analise a = clientes.carregar(cliente);
         String texto = Mensagens.texto(Mensagens.Modelo.valueOf(modelo), a, config.valores());
         Map<String, Object> m = new HashMap<>();
+        m.put("nome", a.cliente().nome());
         m.put("texto", texto);
         m.put("link", Mensagens.linkWhatsapp(a.cliente().telefone(), texto));
         m.put("telefone", a.cliente().telefone());

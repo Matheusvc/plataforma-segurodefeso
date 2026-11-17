@@ -45,12 +45,23 @@ public class DefesoService {
         if (vazio(f.especie()) || inicio == null || prazo == null) {
             throw new RegraException("Informe a espécie, o início do defeso e o prazo final para requerer (datas em dd/mm/aaaa).");
         }
+        LocalDate fim = Datas.ler(f.fim());
+        if (limpar(f.fim()) != null && fim == null) {
+            throw new RegraException("Fim do defeso inválido. Use dd/mm/aaaa ou deixe vazio.");
+        }
+        if (fim != null && fim.isBefore(inicio)) {
+            throw new RegraException("O fim do defeso não pode ser antes do início.");
+        }
+        if (f.especie().trim().length() > 120 || (f.regiao() != null && f.regiao().length() > 300)
+            || (f.portaria() != null && f.portaria().length() > 60)) {
+            throw new RegraException("Espécie (até 120), região (até 300) ou portaria (até 60) com texto grande demais.");
+        }
         Defeso d = new Defeso();
         d.setEspecie(f.especie().trim());
         d.setRegiao(limpar(f.regiao()));
         d.setPortaria(limpar(f.portaria()));
         d.setInicio(inicio);
-        d.setFim(Datas.ler(f.fim()));
+        d.setFim(fim);
         d.setPrazoRequerimento(prazo);
         d.setCriadoEm(hoje.agora());
         return defesos.save(d);

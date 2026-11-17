@@ -32,9 +32,9 @@ import br.com.segurodefeso.config.Hoje;
 import br.com.segurodefeso.dominio.Analise;
 import br.com.segurodefeso.dominio.ClienteDados;
 import br.com.segurodefeso.dominio.ConfigValores;
-import br.com.segurodefeso.dominio.Cpf;
 import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Entrevista;
+import br.com.segurodefeso.dominio.Etapa;
 import br.com.segurodefeso.dominio.Requisito;
 import br.com.segurodefeso.dominio.Telefone;
 import br.com.segurodefeso.dominio.TipoDocumento;
@@ -81,36 +81,18 @@ public class ClienteController {
         this.hoje = hoje;
     }
 
-    /** Lista com filtros: q (nome, CPF, município, colônia), filtro (todos, pendencia ou uma etapa), arquivados. */
+    /**
+     * Uma página de clientes. q: nome, CPF, município ou colônia; filtro: todos, andamento, concluido, cpf, pendencia,
+     * parcelas ou uma etapa; etapas: lista separada por vírgula (ex.: REQUERIDO,EXIGENCIA); tamanho: até 200.
+     */
     @GetMapping("/clientes")
-    public List<Analise> listar(@RequestParam(defaultValue = "") String q, @RequestParam(defaultValue = "todos") String filtro,
-                                @RequestParam(defaultValue = "false") boolean arquivados) {
-        String busca = q.trim().toLowerCase();
-        String dig = Cpf.digitos(busca);
-        return servico.carregar(arquivados).stream().filter(a -> {
-            ClienteDados c = a.cliente();
-            if (!busca.isEmpty()) {
-                boolean achou = (c.nome() != null && c.nome().toLowerCase().contains(busca))
-                    || (!dig.isEmpty() && c.cpf().contains(dig))
-                    || (c.municipio() != null && c.municipio().toLowerCase().contains(busca))
-                    || (c.colonia() != null && c.colonia().toLowerCase().contains(busca));
-                if (!achou) return false;
-            }
-            if (filtro.equals("todos")) return true;
-            if (filtro.equals("andamento")) {
-                return !c.pessoal().cadastroConcluido();
-            }
-            if (filtro.equals("concluido")) {
-                return c.pessoal().cadastroConcluido();
-            }
-            if (filtro.equals("cpf")) {
-                return !c.cpfConferido();
-            }
-            if (filtro.equals("pendencia")) {
-                return !a.apto() && a.pendenteDeRequerer();
-            }
-            return c.etapa().name().equalsIgnoreCase(filtro);
-        }).toList();
+    public ClienteService.Pagina listar(@RequestParam(defaultValue = "") String q, @RequestParam(defaultValue = "todos") String filtro,
+                                        @RequestParam(defaultValue = "false") boolean arquivados,
+                                        @RequestParam(required = false) String etapas,
+                                        @RequestParam(required = false) Integer pagina, @RequestParam(required = false) Integer tamanho) {
+        List<Etapa> lista = etapas == null || etapas.isBlank() ? List.of()
+            : java.util.Arrays.stream(etapas.split(",")).map(String::trim).map(e -> Etapa.valueOf(e.toUpperCase())).toList();
+        return servico.listar(q, filtro, arquivados, lista, pagina, tamanho);
     }
 
     @PostMapping("/clientes")
@@ -122,21 +104,14 @@ public class ClienteController {
     public record EntrevistaReq(String situacao) {
     }
 
-    /** Lista enxuta para a tela Entrevistas. */
+    /** Lista enxuta e paginada da tela Entrevistas. situacao: NAO, CONFIRMADO, A_CONFIRMAR (vazio = todas). */
     @GetMapping("/entrevistas")
-    public List<Map<String, Object>> entrevistas() {
-        return servico.carregar(false).stream().map(a -> {
-            ClienteDados c = a.cliente();
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", c.id());
-            m.put("nome", c.nome());
-            m.put("municipio", c.municipio());
-            m.put("colonia", c.colonia());
-            m.put("etapa", a.etapaNome());
-            m.put("etapaCor", a.etapaCor());
-            m.put("entrevista", c.entrevista());
-            return m;
-        }).toList();
+    public ClienteService.PaginaEntrevistas entrevistas(@RequestParam(defaultValue = "") String q,
+                                                        @RequestParam(required = false) String situacao,
+                                                        @RequestParam(required = false) Integer pagina,
+                                                        @RequestParam(required = false) Integer tamanho) {
+        Entrevista filtro = situacao == null || situacao.isBlank() ? null : Entrevista.valueOf(situacao.toUpperCase());
+        return servico.entrevistas(q, filtro, pagina, tamanho);
     }
 
     @PutMapping("/clientes/{id}/entrevista")

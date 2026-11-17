@@ -24,11 +24,17 @@ public class RelatorioService {
         this.config = config;
     }
 
+    /** A tela mostra os 200 maiores saldos; os totais consideram todos os deferidos. */
+    static final int LIMITE_HONORARIOS = 200;
+
     public Map<String, Object> honorarios() {
-        List<Analise> deferidos = clientes.carregar(false).stream()
-            .filter(a -> a.cliente().etapa() == Etapa.DEFERIDO && a.cliente().parcelasTotal() > 0).toList();
+        List<Analise> deferidos = clientes.carregarEtapa(Etapa.DEFERIDO).stream()
+            .filter(a -> a.cliente().parcelasTotal() > 0).toList();
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("clientes", deferidos);
+        m.put("clientes", deferidos.stream()
+            .sorted(java.util.Comparator.comparing(Analise::honorariosSaldo).reversed().thenComparing(Analise::nome))
+            .limit(LIMITE_HONORARIOS).toList());
+        m.put("totalClientes", deferidos.size());
         m.put("saldo", somar(deferidos, Analise::honorariosSaldo));
         m.put("recebido", somar(deferidos, Analise::honorariosRecebidos));
         m.put("futuro", somar(deferidos, Analise::honorariosFuturos));

@@ -3,12 +3,17 @@ package br.com.segurodefeso.servico;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -105,27 +110,98 @@ public class ClienteService {
         return clientes.findById(id).orElseThrow(() -> new NaoEncontradoException("Cliente não encontrado"));
     }
 
+    public record Pagina(List<Analise> itens, long total, int pagina, int tamanho) {
+    }
+
+    public record LinhaEntrevista(Long id, String nome, String municipio, String colonia, String etapa, String etapaCor,
+                                  Entrevista entrevista) {
+    }
+
+    public record PaginaEntrevistas(List<LinhaEntrevista> itens, long total, Map<Entrevista, Long> totais, int pagina,
+                                    int tamanho) {
+    }
+
+    /**
+     * Uma página da lista de clientes. Busca, filtro e paginação são feitos no banco; só os clientes da página são analisados.
+     * A exceção é o filtro "pendencia", que depende da análise (quem ainda não está apto).
+     */
+    @Transactional(readOnly = true)
+    public Pagina listar(String q, String filtro, boolean arquivados, List<Etapa> etapas, Integer pagina, Integer tamanho) {
+        int pg = ClienteConsulta.pagina(pagina);
+        int tam = ClienteConsulta.tamanho(tamanho);
+        Specification<Cliente> spec = Specification.where(ClienteConsulta.busca(q, arquivados))
+            .and(ClienteConsulta.filtro(filtro)).and(ClienteConsulta.etapas(etapas));
+        Sort ordem = Sort.by("nome").ascending().and(Sort.by("id"));
+        if ("pendencia".equals(filtro)) {
+            List<Analise> todos = analisar(clientes.findAll(spec, ordem)).stream().filter(a -> !a.apto()).toList();
+            int de = Math.min(pg * tam, todos.size());
+            return new Pagina(todos.subList(de, Math.min(de + tam, todos.size())), todos.size(), pg, tam);
+        }
+        Page<Cliente> p = clientes.findAll(spec, PageRequest.of(pg, tam, ordem));
+        return new Pagina(analisar(p.getContent()), p.getTotalElements(), pg, tam);
+    }
+
+    /** Lista enxuta da tela Entrevistas (não precisa da análise completa). */
+    @Transactional(readOnly = true)
+    public PaginaEntrevistas entrevistas(String q, Entrevista situacao, Integer pagina, Integer tamanho) {
+        int pg = ClienteConsulta.pagina(pagina);
+        int tam = ClienteConsulta.tamanho(tamanho);
+        Specification<Cliente> spec = Specification.where(ClienteConsulta.busca(q, false)).and(ClienteConsulta.entrevista(situacao));
+        Page<Cliente> p = clientes.findAll(spec, PageRequest.of(pg, tam, Sort.by("nome").ascending().and(Sort.by("id"))));
+        List<LinhaEntrevista> itens = p.getContent().stream().map(c -> new LinhaEntrevista(c.getId(), c.getNome(),
+            c.getMunicipio(), c.getColonia(), c.getEtapa().getNome(), c.getEtapa().getCor(), c.getEntrevista())).toList();
+        Map<Entrevista, Long> totais = new EnumMap<>(Entrevista.class);
+        for (Entrevista e : Entrevista.values()) {
+            totais.put(e, clientes.countByAtivoTrueAndEntrevista(e));
+        }
+        return new PaginaEntrevistas(itens, p.getTotalElements(), totais, pg, tam);
+    }
+
+    private static final int LOTE = 1000;
+
+    private static <T> List<List<T>> lotes(List<T> itens) {
+        List<List<T>> out = new ArrayList<>();
+        for (int i = 0; i < itens.size(); i += LOTE) {
+            out.add(itens.subList(i, Math.min(i + LOTE, itens.size())));
+        }
+        return out;
+    }
+
+    /** Todos os clientes ativos de uma etapa, já analisados. */
+    @Transactional(readOnly = true)
+    public List<Analise> carregarEtapa(Etapa etapa) {
+        Specification<Cliente> spec = Specification.where(ClienteConsulta.busca(null, false)).and(ClienteConsulta.filtro(etapa.name()));
+        return analisar(clientes.findAll(spec, Sort.by("nome").ascending().and(Sort.by("id"))));
+    }
+
+    public List<Analise> analisarClientes(List<Cliente> lista) {
+        return analisar(lista);
+    }
+
     private List<Analise> analisar(List<Cliente> lista) {
         if (lista.isEmpty()) {
             return List.of();
         }
-        List<Long> ids = lista.stream().map(Cliente::getId).toList();
+        List<Long> todosIds = lista.stream().map(Cliente::getId).toList();
         Map<Long, Map<Requisito, Boolean>> reqs = new HashMap<>();
-        for (RequisitoCliente r : requisitos.findByClienteIdIn(ids)) {
-            reqs.computeIfAbsent(r.getClienteId(), k -> new HashMap<>()).put(r.getChave(), r.getAtende());
-        }
         Map<Long, Set<TipoDocumento>> docs = new HashMap<>();
-        for (Documento d : documentos.findByClienteIdIn(ids)) {
-            docs.computeIfAbsent(d.getClienteId(), k -> EnumSet.noneOf(TipoDocumento.class)).add(d.getTipo());
-        }
         Map<Long, Map<String, ClienteDados.DaeInfo>> daesPorCliente = new HashMap<>();
-        for (Dae d : daes.findByClienteIdIn(ids)) {
-            daesPorCliente.computeIfAbsent(d.getClienteId(), k -> new HashMap<>())
-                .put(d.getCompetencia(), new ClienteDados.DaeInfo(d.getStatus(), d.getValorVenda(), d.getValorDae()));
-        }
         Map<Long, BigDecimal> recebido = new HashMap<>();
-        for (Honorario h : honorarios.findByClienteIdIn(ids)) {
-            recebido.merge(h.getClienteId(), h.getValor(), BigDecimal::add);
+        // Em lotes: o PostgreSQL aceita no máximo 32.767 parâmetros por consulta.
+        for (List<Long> ids : lotes(todosIds)) {
+            for (RequisitoCliente r : requisitos.findByClienteIdIn(ids)) {
+                reqs.computeIfAbsent(r.getClienteId(), k -> new HashMap<>()).put(r.getChave(), r.getAtende());
+            }
+            for (Documento d : documentos.findByClienteIdIn(ids)) {
+                docs.computeIfAbsent(d.getClienteId(), k -> EnumSet.noneOf(TipoDocumento.class)).add(d.getTipo());
+            }
+            for (Dae d : daes.findByClienteIdIn(ids)) {
+                daesPorCliente.computeIfAbsent(d.getClienteId(), k -> new HashMap<>())
+                    .put(d.getCompetencia(), new ClienteDados.DaeInfo(d.getStatus(), d.getValorVenda(), d.getValorDae()));
+            }
+            for (Honorario h : honorarios.findByClienteIdIn(ids)) {
+                recebido.merge(h.getClienteId(), h.getValor(), BigDecimal::add);
+            }
         }
         ConfigValores cfg = config.valores();
         LocalDate ref = hoje.data();
@@ -367,11 +443,14 @@ public class ClienteService {
         if (arquivo == null || arquivo.isEmpty()) {
             throw new RegraException("Escolha o arquivo.");
         }
+        if (tipo == TipoDocumento.COMPROVANTE_DAE && (limpar(competencia) == null || !competencia.matches("\\d{4}-\\d{2}"))) {
+            throw new RegraException("Escolha a competência do DAE pago.");
+        }
         String nome = arquivos.salvar(id, arquivo);
         Documento d = new Documento();
         d.setClienteId(id);
         d.setTipo(tipo);
-        d.setCompetencia(limpar(competencia));
+        d.setCompetencia(tipo == TipoDocumento.COMPROVANTE_DAE ? limpar(competencia) : null);
         String original = arquivo.getOriginalFilename() == null ? nome : arquivo.getOriginalFilename();
         d.setNomeOriginal(original.length() > 200 ? original.substring(0, 200) : original);
         d.setArquivo(nome);
@@ -442,7 +521,13 @@ public class ClienteService {
             case "deferido" -> {
                 int tot = f.parcelasTotal() != null && f.parcelasTotal() > 0 ? f.parcelasTotal()
                     : (c.getParcelasTotal() > 0 ? c.getParcelasTotal() : config.valores().parcelasPadrao());
-                int lib = Math.max(0, Math.min(f.parcelasLiberadas() == null ? 0 : f.parcelasLiberadas(), tot));
+                if (tot > 12) {
+                    throw new RegraException("O total de parcelas deve ser de 1 a 12.");
+                }
+                if (f.parcelasLiberadas() != null && (f.parcelasLiberadas() < 0 || f.parcelasLiberadas() > tot)) {
+                    throw new RegraException("As parcelas liberadas devem ficar entre 0 e o total (" + tot + ").");
+                }
+                int lib = f.parcelasLiberadas() == null ? 0 : f.parcelasLiberadas();
                 c.setEtapa(Etapa.DEFERIDO);
                 c.setParcelasTotal(tot);
                 c.setParcelasLiberadas(lib);
@@ -458,7 +543,14 @@ public class ClienteService {
                 }
                 c.setEtapa(Etapa.INDEFERIDO);
                 c.setIndeferimentoMotivo(motivo);
-                c.setCienciaData(Datas.ler(f.ciencia()));
+                LocalDate ciencia = Datas.ler(f.ciencia());
+                if (limpar(f.ciencia()) != null && ciencia == null) {
+                    throw new RegraException("Data de ciência inválida. Use dd/mm/aaaa.");
+                }
+                if (ciencia != null && ciencia.isAfter(hoje.data())) {
+                    throw new RegraException("A data de ciência não pode ser futura.");
+                }
+                c.setCienciaData(ciencia);
                 c.setPrazoData(null);
                 c.setSituacao("Indeferido" + (obs != null ? ". " + obs : ""));
                 resumo = "Indeferido (" + motivo + ")";
@@ -489,6 +581,9 @@ public class ClienteService {
     @Transactional
     public void registrarHonorario(Long id, String valorTxt, String dataTxt, String observacao, Long usuarioId) {
         Analise a = carregar(id);
+        if (Dinheiro.invalido(valorTxt)) {
+            throw new RegraException("Valor inválido: use só números, por exemplo 486,30.");
+        }
         BigDecimal valor = Dinheiro.ler(valorTxt);
         if (valor == null) {
             valor = a.honorariosPorParcela();
@@ -497,6 +592,12 @@ public class ClienteService {
             throw new RegraException("Informe um valor maior que zero.");
         }
         LocalDate data = Datas.ler(dataTxt);
+        if (limpar(dataTxt) != null && data == null) {
+            throw new RegraException("Data do recebimento inválida. Use dd/mm/aaaa ou deixe vazio para hoje.");
+        }
+        if (data != null && data.isAfter(hoje.data())) {
+            throw new RegraException("A data do recebimento não pode ser futura.");
+        }
         Honorario h = new Honorario();
         h.setClienteId(id);
         h.setValor(valor);

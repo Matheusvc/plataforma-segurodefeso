@@ -4,32 +4,42 @@ import { useAuth } from '../auth.jsx'
 import { BotaoLink, Carregando, Chip, Titulo, useDados } from '../components/ui.jsx'
 import { br } from '../util.js'
 
+const POR_COLUNA = 20
+
 export default function Requerimentos() {
   const { meta } = useAuth()
-  const { dados } = useDados('/clientes')
   return (
     <>
-      <Titulo titulo="Requerimentos" sub="Cada pedido do seguro-defeso por etapa. Clique no cliente para abrir a ficha." />
+      <Titulo titulo="Requerimentos" sub="Cada pedido do seguro-defeso por etapa. Cada coluna mostra os primeiros em ordem alfabética; use Ver todos para a lista completa." />
       <div className="flex flex-wrap gap-2">
         <BotaoLink to="/status">Conferir status dos pedidos</BotaoLink>
         <BotaoLink href={urlApi('/planilhas/exportar/requerimentos.xlsx')} variante="neutro">Exportar planilha</BotaoLink>
       </div>
-      {!dados ? <Carregando /> : (
-        <div className="overflow-x-auto">
-          <div className="grid min-w-[1340px] grid-cols-6 gap-3">
-            {meta.etapas.map((e) => {
-              const lista = dados.filter((a) => a.cliente.etapa === e.id)
-              return (
-                <section key={e.id} className="flex min-h-[300px] flex-col gap-2.5 rounded-xl bg-slate-200/60 p-3">
-                  <div className="flex items-center justify-between"><h2 className="text-sm font-semibold">{e.nome}</h2><Chip className="bg-white">{lista.length}</Chip></div>
-                  {lista.map((a) => <Cartao key={a.cliente.id} a={a} etapa={e.id} />)}
-                </section>
-              )
-            })}
-          </div>
+      <div className="md:overflow-x-auto">
+        <div className="grid grid-cols-1 gap-3 md:min-w-[1340px] md:grid-cols-6">
+          {meta.etapas.map((e) => <Coluna key={e.id} etapa={e} />)}
         </div>
-      )}
+      </div>
     </>
+  )
+}
+
+function Coluna({ etapa }) {
+  const { dados } = useDados(`/clientes?filtro=${etapa.id}&tamanho=${POR_COLUNA}`)
+  return (
+    <section className="flex min-h-[120px] flex-col gap-2.5 rounded-xl bg-slate-200/60 p-3 md:min-h-[300px]">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold">{etapa.nome}</h2>
+        <Chip className="bg-white">{dados ? dados.total.toLocaleString('pt-BR') : '…'}</Chip>
+      </div>
+      {!dados ? <Carregando /> : dados.itens.map((a) => <Cartao key={a.cliente.id} a={a} etapa={etapa.id} />)}
+      {dados && dados.total > dados.itens.length && (
+        <Link to={`/clientes?filtro=${etapa.id}`} className="py-2 text-center text-[13px] font-semibold text-marca-700 underline">
+          Ver todos ({dados.total.toLocaleString('pt-BR')})
+        </Link>
+      )}
+      {dados && dados.total === 0 && <p className="text-xs text-slate-500">Nenhum cliente nesta etapa.</p>}
+    </section>
   )
 }
 

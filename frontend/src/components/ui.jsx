@@ -77,6 +77,26 @@ export function Pills({ opcoes, valor, onChange }) {
   )
 }
 
+/** Rodapé de listas paginadas no servidor: "Mostrando 1–50 de 20.000" e botões Anterior/Próxima. */
+export function Paginacao({ pagina, tamanho, total, aoMudar }) {
+  if (!total) return null
+  const paginas = Math.max(1, Math.ceil(total / tamanho))
+  const de = pagina * tamanho + 1
+  const ate = Math.min((pagina + 1) * tamanho, total)
+  return (
+    <nav aria-label="Paginação" className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-4 py-3 text-sm text-slate-600">
+      <span>Mostrando {de.toLocaleString('pt-BR')}–{ate.toLocaleString('pt-BR')} de {total.toLocaleString('pt-BR')}</span>
+      {paginas > 1 && (
+        <div className="flex items-center gap-2">
+          <Botao variante="neutro" pequeno disabled={pagina === 0} onClick={() => aoMudar(pagina - 1)}>‹ Anterior</Botao>
+          <span className="whitespace-nowrap">Página {pagina + 1} de {paginas.toLocaleString('pt-BR')}</span>
+          <Botao variante="neutro" pequeno disabled={pagina + 1 >= paginas} onClick={() => aoMudar(pagina + 1)}>Próxima ›</Botao>
+        </div>
+      )}
+    </nav>
+  )
+}
+
 export function Alerta({ cor = 'info', children }) {
   const c = {
     ok: 'border-green-300 bg-green-50 text-green-900',

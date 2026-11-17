@@ -57,6 +57,13 @@ export const mascaras = {
   rgp: (v) => maiusculo(v, /[^0-9A-Z./-]/g, 20),
   orgaoEmissor: (v) => maiusculo(v, /[^0-9A-Z/-]/g, 12),
   oab: (v) => maiusculo(v, /[^0-9A-Z/-]/g, 14),
+  /** Valor em reais: só números e uma vírgula com até 2 casas (ex.: 1250,50). */
+  dinheiro(v) {
+    let s = String(v ?? '').replace(/[^\d,]/g, '')
+    const i = s.indexOf(',')
+    if (i >= 0) s = s.slice(0, i + 1) + s.slice(i + 1).replace(/,/g, '').slice(0, 2)
+    return s.slice(0, 13)
+  },
   /** 30 ou 27,5 */
   percentual(v) {
     let s = String(v ?? '').replace(/[^\d,]/g, '')
@@ -113,6 +120,8 @@ export const validadores = {
     if (d.length === 11 && d[2] !== '9') return 'Celular com 11 números deve começar com 9 depois do DDD.'
     return ''
   },
+  /** Valor em reais, com ou sem separador de milhar: 1250, 1.250,00 ou 486,3. */
+  dinheiro: (v) => (!v || /^\d{1,9}(,\d{1,2})?$/.test(String(v).replace(/\./g, '')) ? '' : 'Valor inválido: use só números, por exemplo 1250,00.'),
   cep: (v) => (!v || v.replace(/\D/g, '').length === 8 ? '' : 'O CEP tem 8 números.'),
   nit: (v) => (!v || v.replace(/\D/g, '').length === 11 ? '' : 'O NIT/PIS tem 11 números.'),
   uf: (v) => (!v || /^[A-Z]{2}$/.test(v) ? '' : 'Use a sigla com 2 letras, por exemplo MA.'),

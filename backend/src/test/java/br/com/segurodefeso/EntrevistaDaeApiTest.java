@@ -87,7 +87,7 @@ class EntrevistaDaeApiTest {
                 .contentType(MediaType.APPLICATION_JSON).content("{\"situacao\":\"CONFIRMADO\"}"))
             .andExpect(status().isOk());
         mvc.perform(get("/api/entrevistas").with(admin()))
-            .andExpect(jsonPath("$[0].entrevista").value("CONFIRMADO"));
+            .andExpect(jsonPath("$.itens[0].entrevista").value("CONFIRMADO"));
         mvc.perform(post("/api/dae").with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(dae))
             .andExpect(status().isOk());
         mvc.perform(get("/api/dae?competencia=2026-11").with(admin()))
@@ -97,7 +97,7 @@ class EntrevistaDaeApiTest {
 
         // DAE não aparece em Prazos
         mvc.perform(get("/api/prazos?tipo=DAE").with(admin()))
-            .andExpect(jsonPath("$", hasSize(0)));
+            .andExpect(jsonPath("$.itens", hasSize(0)));
     }
 
     @Test
@@ -113,7 +113,7 @@ class EntrevistaDaeApiTest {
             .andExpect(jsonPath("$.analise.cliente.pessoal.cpfConferidoEm").value(nullValue()))
             .andExpect(jsonPath("$.analise.bloqueios", hasItem("CPF não conferido na Receita")));
         mvc.perform(get("/api/clientes?filtro=cpf").with(admin()))
-            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(1)));
+            .andExpect(jsonPath("$.itens[?(@.cliente.id==" + id + ")]", hasSize(1)));
 
         mvc.perform(put("/api/clientes/" + id + "/cpf-conferido").with(admin()).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content("{\"conferido\":true}"))
@@ -123,7 +123,7 @@ class EntrevistaDaeApiTest {
             .andExpect(jsonPath("$.cpfConferidoPor").value("Administrador"))
             .andExpect(jsonPath("$.analise.bloqueios", not(hasItem("CPF não conferido na Receita"))));
         mvc.perform(get("/api/clientes?filtro=cpf").with(admin()))
-            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(0)));
+            .andExpect(jsonPath("$.itens[?(@.cliente.id==" + id + ")]", hasSize(0)));
 
         // trocar o CPF invalida a conferência
         mvc.perform(put("/api/clientes/" + id).with(admin()).with(csrf()).contentType(MediaType.APPLICATION_JSON)
@@ -146,16 +146,16 @@ class EntrevistaDaeApiTest {
         mvc.perform(get("/api/clientes/andamento").with(admin()))
             .andExpect(jsonPath("$.total").value(1));
         mvc.perform(get("/api/clientes?filtro=andamento").with(admin()))
-            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(1)));
+            .andExpect(jsonPath("$.itens[?(@.cliente.id==" + id + ")]", hasSize(1)));
         mvc.perform(get("/api/clientes?filtro=concluido").with(admin()))
-            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(0)));
+            .andExpect(jsonPath("$.itens[?(@.cliente.id==" + id + ")]", hasSize(0)));
 
         mvc.perform(put("/api/clientes/" + id + "/concluir-cadastro").with(admin()).with(csrf()))
             .andExpect(status().isOk());
         mvc.perform(get("/api/clientes/andamento").with(admin()))
             .andExpect(jsonPath("$.total").value(0));
         mvc.perform(get("/api/clientes?filtro=concluido").with(admin()))
-            .andExpect(jsonPath("$[?(@.cliente.id==" + id + ")]", hasSize(1)));
+            .andExpect(jsonPath("$.itens[?(@.cliente.id==" + id + ")]", hasSize(1)));
     }
 
     @Test

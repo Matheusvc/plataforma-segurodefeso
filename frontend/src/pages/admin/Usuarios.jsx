@@ -33,8 +33,8 @@ export default function Usuarios() {
           <h2 className="text-base font-semibold">Novo usuário</h2>
           <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3.5">
             <Campo rotulo="Nome" obrigatorio><input type="text" required value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: mascaras.nome(e.target.value) })} /></Campo>
-            <Campo rotulo="E-mail" obrigatorio><input type="email" required value={novo.email} onChange={(e) => setNovo({ ...novo, email: e.target.value })} /></Campo>
-            <Campo rotulo="Senha inicial (mín. 10, letras e números)" obrigatorio><input type="password" required autoComplete="new-password" value={novo.senha} onChange={(e) => setNovo({ ...novo, senha: e.target.value })} /></Campo>
+            <Campo rotulo="E-mail" obrigatorio><input type="email" required maxLength={200} autoComplete="off" placeholder="nome@escritorio.com.br" value={novo.email} onChange={(e) => setNovo({ ...novo, email: e.target.value.trim() })} /></Campo>
+            <Campo rotulo="Senha inicial (mín. 10, letras e números)" obrigatorio><input type="password" required minLength={10} autoComplete="new-password" value={novo.senha} onChange={(e) => setNovo({ ...novo, senha: e.target.value })} /></Campo>
             <Campo rotulo="Papel"><select value={novo.papel} onChange={(e) => setNovo({ ...novo, papel: e.target.value })}>{meta.papeis.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}</select></Campo>
           </div>
           <div><Botao type="submit" disabled={ocupado}>Criar usuário</Botao></div>

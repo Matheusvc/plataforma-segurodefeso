@@ -1,21 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
 import SeletorEntrevista from '../components/SeletorEntrevista.jsx'
-import { Card, Carregando, Chip, Pills, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { Card, Carregando, Chip, Paginacao, Pills, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
+
+const TAMANHO = 25
 
 export default function Entrevistas() {
   const { meta } = useAuth()
-  const { dados, erro, recarregar } = useDados('/entrevistas')
-  const { executar, ocupado } = useAcao()
   const [filtro, setFiltro] = useState('todos')
   const [busca, setBusca] = useState('')
+  const [termo, setTermo] = useState('')
+  const [pagina, setPagina] = useState(0)
+  useEffect(() => {
+    const t = setTimeout(() => { setTermo(busca); setPagina(0) }, 350)
+    return () => clearTimeout(t)
+  }, [busca])
+  const q = new URLSearchParams({ q: termo, situacao: filtro === 'todos' ? '' : filtro, pagina: String(pagina), tamanho: String(TAMANHO) })
+  const { dados, erro, recarregar } = useDados('/entrevistas?' + q.toString())
+  const { executar, ocupado } = useAcao()
 
-  const termo = busca.trim().toLowerCase()
-  const lista = (dados || []).filter((c) => (filtro === 'todos' || c.entrevista === filtro)
-    && (!termo || c.nome.toLowerCase().includes(termo)))
-  const contagem = (id) => (dados || []).filter((c) => c.entrevista === id).length
+  const totais = dados?.totais || {}
+  const geral = Object.values(totais).reduce((soma, n) => soma + n, 0)
 
   function marcar(cliente, situacao) {
     if (cliente.entrevista === situacao) return
@@ -29,10 +36,10 @@ export default function Entrevistas() {
       <Card className="flex flex-col gap-3.5">
         <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
           Buscar cliente
-          <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome" />
+          <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Nome, CPF, município ou colônia" />
         </label>
-        <Pills valor={filtro} onChange={setFiltro}
-          opcoes={[['todos', `Todos (${(dados || []).length})`], ...meta.entrevistas.map((e) => [e.id, `${e.nome} (${contagem(e.id)})`])]} />
+        <Pills valor={filtro} onChange={(v) => { setFiltro(v); setPagina(0) }}
+          opcoes={[['todos', `Todos (${geral.toLocaleString('pt-BR')})`], ...meta.entrevistas.map((e) => [e.id, `${e.nome} (${(totais[e.id] ?? 0).toLocaleString('pt-BR')})`])]} />
       </Card>
       {erro && <p className="text-sm text-red-700">{erro}</p>}
       {!dados ? <Carregando /> : (
@@ -40,7 +47,7 @@ export default function Entrevistas() {
           <table className="w-full min-w-[720px] border-collapse">
             <thead><tr><Th>Cliente</Th><Th>Etapa</Th><Th>Entrevista</Th></tr></thead>
             <tbody>
-              {lista.map((c) => (
+              {dados.itens.map((c) => (
                 <tr key={c.id} className="hover:bg-slate-50">
                   <Td>
                     <Link to={`/clientes/${c.id}`} className="font-semibold text-marca-700 hover:underline">{c.nome}</Link>
@@ -52,9 +59,10 @@ export default function Entrevistas() {
                   </Td>
                 </tr>
               ))}
-              {lista.length === 0 && <tr><Td className="py-6 text-slate-500">Nenhum cliente neste filtro.</Td></tr>}
+              {dados.itens.length === 0 && <tr><Td className="py-6 text-slate-500">Nenhum cliente neste filtro.</Td></tr>}
             </tbody>
           </table>
+          <Paginacao pagina={dados.pagina} tamanho={dados.tamanho} total={dados.total} aoMudar={setPagina} />
         </Card>
       )}
     </>

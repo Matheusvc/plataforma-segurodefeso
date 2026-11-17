@@ -30,6 +30,15 @@ public final class Dinheiro {
         }
     }
 
+    /** Texto preenchido que não é um valor em reais válido (não numérico, negativo ou absurdo). Vazio não é inválido. */
+    public static boolean invalido(String texto) {
+        if (texto == null || texto.replace("R$", "").isBlank()) {
+            return false;
+        }
+        BigDecimal v = ler(texto);
+        return v == null || v.signum() < 0 || v.compareTo(new BigDecimal("100000000")) > 0;
+    }
+
     public static String brl(BigDecimal v) {
         DecimalFormat f = new DecimalFormat("#,##0.00", DecimalFormatSymbols.getInstance(Locale.of("pt", "BR")));
         return "R$ " + f.format(v == null ? BigDecimal.ZERO : v);

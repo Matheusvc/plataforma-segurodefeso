@@ -11,10 +11,10 @@ export default function Relatorios() {
           <h2 className="mb-3 text-base font-semibold">Por colônia</h2>
           <div className="flex flex-col gap-3">
             {dados.colonias.map((o) => (
-              <div key={o.colonia} className="grid grid-cols-[180px_1fr_170px] items-center gap-3 text-[13px]">
-                <div><strong>{o.colonia}</strong><div className="text-xs text-slate-500">{o.municipio}</div></div>
+              <div key={o.colonia} className="grid grid-cols-1 items-center gap-1.5 text-[13px] sm:grid-cols-[180px_1fr_170px] sm:gap-3">
+                <div className="min-w-0"><strong className="break-words">{o.colonia}</strong><div className="text-xs text-slate-500">{o.municipio}</div></div>
                 <div className="h-3 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-marca-700" style={{ width: `${o.pct}%` }} /></div>
-                <span className="text-right">{o.clientes} cliente(s) · {o.deferimento}</span>
+                <span className="sm:text-right">{o.clientes.toLocaleString('pt-BR')} cliente(s) · {o.deferimento}</span>
               </div>
             ))}
             {dados.colonias.length === 0 && <p className="text-sm text-slate-500">Sem clientes.</p>}

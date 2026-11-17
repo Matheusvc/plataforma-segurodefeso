@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { useAuth } from '../auth.jsx'
-import { Alerta, Botao, BotaoLink, Campo, Card, Carregando, Chip, Item, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
-import { mascaras } from '../formato.js'
+import { Alerta, Botao, BotaoLink, Campo, Card, Carregando, Chip, Item, Td, Th, Titulo, useAcao, useAviso, useDados } from '../components/ui.jsx'
+import { mascaras, validadores } from '../formato.js'
 import ConferenciaCpf from '../components/ConferenciaCpf.jsx'
 import Documentos from '../components/Documentos.jsx'
 import { br, brl, competencia, cpf, hora } from '../util.js'
@@ -221,6 +221,7 @@ function Requisitos({ a, id, recarregar }) {
 
 function Financeiro({ a, id, receb, recarregar }) {
   const { executar, ocupado } = useAcao()
+  const aviso = useAviso()
   const [valor, setValor] = useState('')
   const [data, setData] = useState('')
   const [obs, setObs] = useState('')
@@ -233,6 +234,11 @@ function Financeiro({ a, id, receb, recarregar }) {
   ]
   async function registrar(e) {
     e.preventDefault()
+    const problema = validadores.dinheiro(valor) || validadores.data({ passado: true, min: 2000 })(data)
+    if (problema) {
+      aviso.erro(problema)
+      return
+    }
     await executar(() => api(`/clientes/${id}/honorarios`, { metodo: 'POST', corpo: { valor, data, observacao: obs } }), () => {
       setValor(''); setData(''); setObs(''); recarregar()
     })
@@ -243,9 +249,9 @@ function Financeiro({ a, id, receb, recarregar }) {
         {cards.map(([k, v]) => <Item key={k} className="flex-col items-start"><div className="text-xs text-slate-500">{k}</div><div className="text-lg font-bold">{v}</div></Item>)}
       </div>
       <form onSubmit={registrar} className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3.5">
-        <Campo rotulo="Valor recebido (R$)" className="flex-[1_1_160px]"><input type="text" inputMode="decimal" value={valor} placeholder={String(a.honorariosPorParcela).replace('.', ',')} onChange={(e) => setValor(e.target.value)} /></Campo>
+        <Campo rotulo="Valor recebido (R$)" className="flex-[1_1_160px]"><input type="text" inputMode="decimal" value={valor} placeholder={String(a.honorariosPorParcela).replace('.', ',')} maxLength={13} onChange={(e) => setValor(mascaras.dinheiro(e.target.value))} /></Campo>
         <Campo rotulo="Data" className="flex-[1_1_160px]"><input type="text" inputMode="numeric" maxLength={10} value={data} placeholder="dd/mm/aaaa (vazio = hoje)" onChange={(e) => setData(mascaras.data(e.target.value))} /></Campo>
-        <Campo rotulo="Observação" className="flex-[2_1_220px]"><input type="text" value={obs} onChange={(e) => setObs(e.target.value)} /></Campo>
+        <Campo rotulo="Observação" className="flex-[2_1_220px]"><input type="text" maxLength={300} value={obs} onChange={(e) => setObs(e.target.value)} /></Campo>
         <Botao type="submit" disabled={ocupado}>Registrar recebimento</Botao>
       </form>
       <div className="flex flex-col gap-2">

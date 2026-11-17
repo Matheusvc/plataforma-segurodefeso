@@ -22,8 +22,9 @@ public class DaeController {
     }
 
     @GetMapping
-    public Map<String, Object> tela(@RequestParam(required = false) String competencia) {
-        return dae.tela(competencia);
+    public Map<String, Object> tela(@RequestParam(required = false) String competencia, @RequestParam(defaultValue = "") String q,
+                                    @RequestParam(required = false) Integer pagina, @RequestParam(required = false) Integer tamanho) {
+        return dae.tela(competencia, q, pagina, tamanho);
     }
 
     @PostMapping

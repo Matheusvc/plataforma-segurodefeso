@@ -47,6 +47,16 @@ public class AdminController {
                             Integer diaVencimentoDae, Integer parcelasPadrao) {
     }
 
+    private static final java.util.regex.Pattern EMAIL = java.util.regex.Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+
+    private static Papel papel(String texto) {
+        try {
+            return Papel.valueOf(texto);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new RegraException("Escolha o papel do usuário: Administrador, Advogado ou Equipe.");
+        }
+    }
+
     private final UsuarioRepo usuarios;
     private final ClienteRepo clientes;
     private final EventoRepo eventos;
@@ -86,14 +96,15 @@ public class AdminController {
     public Map<String, String> criar(@RequestBody NovoUsuario req) {
         String nome = req.nome() == null ? "" : req.nome().trim();
         String email = req.email() == null ? "" : req.email().trim().toLowerCase();
-        if (nome.isEmpty() || !email.contains("@")) throw new RegraException("Informe nome e e-mail válidos.");
+        if (nome.length() < 3 || nome.length() > 150) throw new RegraException("Informe o nome completo (de 3 a 150 caracteres).");
+        if (!EMAIL.matcher(email).matches() || email.length() > 200) throw new RegraException("Informe um e-mail válido, como nome@escritorio.com.br.");
         if (!LoginService.senhaForte(req.senha())) throw new RegraException("Senha inicial fraca: use pelo menos 10 caracteres, com letras e números.");
         if (usuarios.findByEmailIgnoreCase(email).isPresent()) throw new RegraException("Já existe usuário com este e-mail.");
         Usuario u = new Usuario();
         u.setNome(nome);
         u.setEmail(email);
         u.setSenhaHash(encoder.encode(req.senha()));
-        u.setPapel(Papel.valueOf(req.papel()));
+        u.setPapel(papel(req.papel()));
         u.setAtivo(true);
         u.setCriadoEm(hoje.agora());
         usuarios.save(u);
@@ -106,7 +117,7 @@ public class AdminController {
         boolean proprio = u.getId().equals(atual.id());
         if (req.papel() != null) {
             if (proprio) throw new RegraException("Você não pode mudar o próprio papel.");
-            u.setPapel(Papel.valueOf(req.papel()));
+            u.setPapel(papel(req.papel()));
         }
         if (req.ativo() != null) {
             if (proprio) throw new RegraException("Você não pode se desativar.");
@@ -143,9 +154,11 @@ public class AdminController {
     public List<Map<String, Object>> atividades() {
         Map<Long, String> nomesU = new HashMap<>();
         usuarios.findAll().forEach(u -> nomesU.put(u.getId(), u.getNome()));
-        Map<Long, String> nomesC = new HashMap<>();
-        clientes.findAll().forEach((Cliente c) -> nomesC.put(c.getId(), c.getNome()));
-        return eventos.findAllByOrderByMomentoDescIdDesc(PageRequest.of(0, 500)).stream().map(e -> {
+        List<br.com.segurodefeso.entidade.Evento> recentes = eventos.findAllByOrderByMomentoDescIdDesc(PageRequest.of(0, 500));
+        Map<Long, String> nomesC = new HashMap<>();   // só os clientes que aparecem nestes 500 registros
+        clientes.findAllById(recentes.stream().map(e -> e.getClienteId()).filter(java.util.Objects::nonNull).distinct().toList())
+            .forEach((Cliente c) -> nomesC.put(c.getId(), c.getNome()));
+        return recentes.stream().map(e -> {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("momento", e.getMomento());
             m.put("usuario", e.getUsuarioId() == null ? "sistema" : nomesU.get(e.getUsuarioId()));

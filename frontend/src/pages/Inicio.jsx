@@ -33,6 +33,9 @@ export default function Inicio() {
           <div className="flex flex-wrap items-start gap-4">
             <Card className="min-w-0 flex-[3_1_520px]" id="fila">
               <h2 className="mb-3 text-base font-semibold">Fila do dia, por prioridade</h2>
+              {dados.filaTotal > dados.fila.length && (
+                <p className="mb-3 text-xs text-slate-500">Mostrando as {dados.fila.length} mais urgentes de {dados.filaTotal.toLocaleString('pt-BR')}.</p>
+              )}
               {dados.fila.length === 0 && <p className="text-sm text-slate-500">Nada pendente. Bom trabalho.</p>}
               <div className="flex flex-col gap-2">
                 {dados.fila.map((f, i) => (

@@ -118,7 +118,7 @@ class OperacaoApiTest {
             .andExpect(jsonPath("$[0].regiao").doesNotExist());
         mvc.perform(get("/api/prazos?tipo=Defeso").with(admin()))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$[0].tipo").value("Defeso"));
+            .andExpect(jsonPath("$.itens[0].tipo").value("Defeso"));
 
         mvc.perform(delete("/api/defesos/1").with(user("eq@teste.com").roles("EQUIPE")).with(csrf()))
             .andExpect(status().isForbidden());

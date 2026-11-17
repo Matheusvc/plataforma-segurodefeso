@@ -1,16 +1,23 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, urlApi } from '../api.js'
-import { Botao, BotaoLink, Card, Carregando, Chip, Td, Th, Titulo, useAcao, useDados } from '../components/ui.jsx'
+import { Botao, BotaoLink, Card, Carregando, Chip, Td, Th, Titulo, useAcao, useAviso, useDados } from '../components/ui.jsx'
+import { mascaras, validadores } from '../formato.js'
 import { brl, numeroBr } from '../util.js'
 
 export default function Honorarios() {
   const { dados, recarregar } = useDados('/honorarios')
   const { executar, ocupado } = useAcao()
+  const aviso = useAviso()
   const [valores, setValores] = useState({})
 
   async function registrar(a) {
     const valor = valores[a.cliente.id] ?? numeroBr(a.honorariosPorParcela)
+    const problema = validadores.dinheiro(valor)
+    if (problema) {
+      aviso.erro(problema)
+      return
+    }
     await executar(() => api(`/clientes/${a.cliente.id}/honorarios`, { metodo: 'POST', corpo: { valor } }), recarregar)
   }
 
@@ -23,7 +30,12 @@ export default function Honorarios() {
           <Card key={k}><div className="text-[13px] text-slate-600">{k}</div><div className="mt-1 text-[27px] font-bold">{brl(v)}</div><div className="text-xs text-slate-500">{d}</div></Card>
         ))}
       </div>
-      <div><BotaoLink href={urlApi('/planilhas/exportar/honorarios.xlsx')} variante="neutro">Exportar planilha</BotaoLink></div>
+      <div className="flex flex-wrap items-center gap-3">
+        <BotaoLink href={urlApi('/planilhas/exportar/honorarios.xlsx')} variante="neutro">Exportar planilha</BotaoLink>
+        {dados.totalClientes > dados.clientes.length && (
+          <span className="text-sm text-slate-600">Mostrando os {dados.clientes.length} maiores saldos de {dados.totalClientes.toLocaleString('pt-BR')} clientes. Os totais acima consideram todos.</span>
+        )}
+      </div>
       <Card semPad className="overflow-x-auto">
         <table className="w-full min-w-[940px] border-collapse">
           <thead><tr><Th>Cliente</Th><Th>Parcelas</Th><Th>Por parcela</Th><Th>Devido</Th><Th>Recebido</Th><Th>Saldo</Th><Th>Registrar recebimento</Th></tr></thead>
@@ -40,7 +52,7 @@ export default function Honorarios() {
                   <Td>{saldo > 0.009 ? (
                     <div className="flex items-center gap-2">
                       <input type="text" aria-label="Valor recebido" className="!w-[110px]" value={valores[a.cliente.id] ?? numeroBr(a.honorariosPorParcela)}
-                        onChange={(e) => setValores({ ...valores, [a.cliente.id]: e.target.value })} />
+                        maxLength={13} inputMode="decimal" onChange={(e) => setValores({ ...valores, [a.cliente.id]: mascaras.dinheiro(e.target.value) })} />
                       <Botao pequeno disabled={ocupado} onClick={() => registrar(a)}>Registrar</Botao>
                     </div>
                   ) : <span className="text-xs text-slate-500">quitado</span>}</Td>

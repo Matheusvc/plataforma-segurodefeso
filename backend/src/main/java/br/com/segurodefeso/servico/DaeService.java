@@ -6,12 +6,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import br.com.segurodefeso.config.Hoje;
 import br.com.segurodefeso.dominio.Analise;
-import br.com.segurodefeso.dominio.ClienteDados;
 import br.com.segurodefeso.dominio.ConfigValores;
 import br.com.segurodefeso.dominio.Datas;
 import br.com.segurodefeso.dominio.Dinheiro;
@@ -51,21 +54,30 @@ public class DaeService {
         this.hoje = hoje;
     }
 
-    /** Dados da tela DAE para a competência pedida (padrão: a mais recente). */
-    public Map<String, Object> tela(String competencia) {
+    /**
+     * Dados da tela DAE para a competência pedida (padrão: a mais recente): uma página dos clientes com entrevista
+     * confirmada e os totais da competência, contados no banco.
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> tela(String competencia, String q, Integer pagina, Integer tamanho) {
         List<String> comps = Datas.competenciasDae(hoje.data());
         String comp = competencia != null && comps.contains(competencia) ? competencia : comps.get(comps.size() - 1);
         ConfigValores cfg = config.valores();
-        List<Analise> lista = clientes.carregar(false).stream()
-            .filter(a -> a.cliente().entrevista() == Entrevista.CONFIRMADO).toList();
+        int pg = ClienteConsulta.pagina(pagina);
+        int tam = ClienteConsulta.tamanho(tamanho);
+        Specification<Cliente> spec = Specification.where(ClienteConsulta.busca(q, false)).and(ClienteConsulta.entrevista(Entrevista.CONFIRMADO));
+        Page<Cliente> p = clienteRepo.findAll(spec, PageRequest.of(pg, tam, Sort.by("nome").ascending().and(Sort.by("id"))));
+        List<Analise> lista = clientes.analisarClientes(p.getContent());
+
+        long confirmados = clienteRepo.countByAtivoTrueAndEntrevista(Entrevista.CONFIRMADO);
         Map<String, Long> resumo = new LinkedHashMap<>();
+        long lancados = 0;
         for (StatusDae s : StatusDae.values()) {
-            resumo.put(s.name(), lista.stream().filter(a -> {
-                ClienteDados.DaeInfo d = a.cliente().daes().get(comp);
-                return d != null && d.status() == s;
-            }).count());
+            long n = daes.contarConfirmados(comp, s);
+            resumo.put(s.name(), n);
+            lancados += n;
         }
-        resumo.put("EM_ABERTO", lista.stream().filter(a -> a.cliente().daes().get(comp) == null).count());
+        resumo.put("EM_ABERTO", Math.max(0, confirmados - lancados));
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("competencias", comps);
         m.put("competencia", comp);
@@ -73,6 +85,9 @@ public class DaeService {
         m.put("aliquota", cfg.aliquotaDae());
         m.put("resumo", resumo);
         m.put("clientes", lista);
+        m.put("total", p.getTotalElements());
+        m.put("pagina", pg);
+        m.put("tamanho", tam);
         return m;
     }
 
@@ -93,6 +108,10 @@ public class DaeService {
 
     /** Devolve true se algo mudou. */
     private boolean gravar(Item item, String competencia, ConfigValores cfg) {
+        if (Dinheiro.invalido(item.venda())) {
+            String nome = clienteRepo.findById(item.clienteId()).map(Cliente::getNome).orElse("cliente");
+            throw new RegraException("Venda inválida de " + nome + ": use só números, por exemplo 1.250,00.");
+        }
         BigDecimal venda = Dinheiro.ler(item.venda());
         StatusDae status = item.status() == null || item.status().isBlank() ? null : StatusDae.valueOf(item.status());
         Dae existente = daes.findByClienteIdAndCompetencia(item.clienteId(), competencia).orElse(null);

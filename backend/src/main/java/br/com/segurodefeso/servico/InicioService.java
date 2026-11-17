@@ -20,6 +20,9 @@ import br.com.segurodefeso.dominio.FilaDoDia;
 @Service
 public class InicioService {
 
+    /** A fila do dia mostra as mais urgentes; o total aparece no indicador. */
+    static final int LIMITE_FILA = 30;
+
     private final ClienteService clientes;
     private final UsuarioAtual atual;
     private final Hoje hoje;
@@ -61,7 +64,8 @@ public class InicioService {
         for (Etapa e : Etapa.values()) {
             funil.add(Map.of("etapa", e.getNome(), "qtd", cont.get(e), "pct", Math.round(cont.get(e) * 100.0 / max), "cor", e.getCor()));
         }
-        return Map.of("kpis", kpis, "fila", fila, "funil", funil);
+        List<FilaDoDia.Item> filaVisivel = fila.size() > LIMITE_FILA ? fila.subList(0, LIMITE_FILA) : fila;
+        return Map.of("kpis", kpis, "fila", filaVisivel, "filaTotal", fila.size(), "funil", funil);
     }
 
     private static Map<String, Object> kpi(String rotulo, String valor, String dica, String link) {

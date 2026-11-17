@@ -2,21 +2,24 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth.jsx'
 import { urlApi } from '../api.js'
-import { BotaoLink, Card, Carregando, Chip, Pills, Td, Th, Titulo, useDados } from '../components/ui.jsx'
+import { BotaoLink, Card, Carregando, Chip, Paginacao, Pills, Td, Th, Titulo, useDados } from '../components/ui.jsx'
 import { cpfMascarado } from '../util.js'
+
+const TAMANHO = 25
 
 export default function Clientes() {
   const { meta } = useAuth()
-  const [busca, setBusca] = useState('')
   const [params] = useSearchParams()
+  const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState(params.get('filtro') || 'todos')
   const [arquivados, setArquivados] = useState(false)
   const [termo, setTermo] = useState('')
+  const [pagina, setPagina] = useState(0)
   useEffect(() => {
-    const t = setTimeout(() => setTermo(busca), 350)
+    const t = setTimeout(() => { setTermo(busca); setPagina(0) }, 350)
     return () => clearTimeout(t)
   }, [busca])
-  const q = new URLSearchParams({ q: termo, filtro, arquivados: String(arquivados) })
+  const q = new URLSearchParams({ q: termo, filtro, arquivados: String(arquivados), pagina: String(pagina), tamanho: String(TAMANHO) })
   const { dados, erro } = useDados('/clientes?' + q.toString())
   const { dados: andamento } = useDados('/clientes/andamento')
   const faltam = andamento?.total ?? 0
@@ -37,9 +40,9 @@ export default function Clientes() {
           <BotaoLink to="/clientes/novo">+ Novo cadastro</BotaoLink>
           <BotaoLink href={urlApi('/planilhas/exportar/clientes.xlsx')} variante="neutro">Exportar planilha</BotaoLink>
         </div>
-        <Pills opcoes={opcoes} valor={filtro} onChange={setFiltro} />
+        <Pills opcoes={opcoes} valor={filtro} onChange={(v) => { setFiltro(v); setPagina(0) }} />
         <label className="flex items-center gap-2 text-xs text-slate-600">
-          <input type="checkbox" checked={arquivados} onChange={(e) => setArquivados(e.target.checked)} /> incluir arquivados
+          <input type="checkbox" checked={arquivados} onChange={(e) => { setArquivados(e.target.checked); setPagina(0) }} /> incluir arquivados
         </label>
       </Card>
       {erro && <p className="text-sm text-red-700">{erro}</p>}
@@ -48,7 +51,7 @@ export default function Clientes() {
           <table className="w-full min-w-[860px] border-collapse">
             <thead><tr><Th>Cliente</Th><Th>Colônia</Th><Th>Requisitos</Th><Th>Documentos</Th><Th>DAE em aberto</Th><Th>Etapa</Th><Th /></tr></thead>
             <tbody>
-              {dados.map((a) => {
+              {dados.itens.map((a) => {
                 const c = a.cliente
                 const nDae = a.daeVencidos.length + a.daeAbertos.length
                 const docsOk = nDoc - a.documentosPendentes.length
@@ -75,11 +78,12 @@ export default function Clientes() {
                   </tr>
                 )
               })}
-              {dados.length === 0 && (
+              {dados.itens.length === 0 && (
                 <tr><Td className="py-6 text-slate-500">Nenhum cliente encontrado. Cadastre um novo ou importe a planilha em Planilhas.</Td></tr>
               )}
             </tbody>
           </table>
+          <Paginacao pagina={dados.pagina} tamanho={dados.tamanho} total={dados.total} aoMudar={setPagina} />
         </Card>
       )}
     </>

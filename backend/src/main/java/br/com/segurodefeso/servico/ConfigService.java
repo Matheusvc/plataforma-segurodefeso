@@ -36,14 +36,17 @@ public class ConfigService {
 
     @Transactional
     public ConfigValores salvar(ConfigValores v) {
-        if (v.salarioMinimo() == null || v.salarioMinimo().signum() <= 0) {
-            throw new RegraException("Informe o salário mínimo vigente.");
+        if (v.salarioMinimo() == null || v.salarioMinimo().signum() <= 0 || v.salarioMinimo().compareTo(new BigDecimal("100000")) > 0) {
+            throw new RegraException("Informe o salário mínimo vigente em reais, por exemplo 1.621,00.");
         }
         if (v.honorariosPct() == null || v.honorariosPct().signum() < 0 || v.honorariosPct().compareTo(new BigDecimal("100")) > 0) {
             throw new RegraException("Honorários: use um percentual entre 0 e 100.");
         }
-        if (v.aliquotaDae() == null || v.aliquotaDae().signum() < 0) {
-            throw new RegraException("Informe a alíquota do DAE.");
+        if (v.aliquotaDae() == null || v.aliquotaDae().signum() < 0 || v.aliquotaDae().compareTo(new BigDecimal("100")) > 0) {
+            throw new RegraException("Alíquota do DAE: use um percentual entre 0 e 100, por exemplo 1,5.");
+        }
+        if (v.nomeEscritorio() != null && v.nomeEscritorio().trim().length() > 100) {
+            throw new RegraException("O nome do escritório pode ter no máximo 100 caracteres.");
         }
         if (v.diaVencimentoDae() < 1 || v.diaVencimentoDae() > 28) {
             throw new RegraException("Dia de vencimento do DAE: use um número de 1 a 28.");

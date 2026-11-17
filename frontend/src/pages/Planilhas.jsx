@@ -75,7 +75,7 @@ export default function Planilhas() {
             <table className="w-full min-w-[820px] border-collapse">
               <thead><tr><Th>Linha</Th><Th>Nome</Th><Th>CPF</Th><Th>Município</Th><Th>RGP</Th><Th>Resultado</Th><Th>Observações</Th></tr></thead>
               <tbody>
-                {previa.registros.slice(0, 500).map((r) => (
+                {previa.registros.map((r) => (
                   <tr key={r.linha}>
                     <Td>{r.linha}</Td><Td>{r.dados.nome || '—'}</Td><Td>{cpf(r.dados.cpf)}</Td><Td>{r.dados.municipio || '—'}</Td><Td>{r.dados.rgpNumero || '—'}</Td>
                     <Td><Chip cor={ACAO[r.acao][0]}>{ACAO[r.acao][1]}</Chip></Td>
@@ -85,7 +85,7 @@ export default function Planilhas() {
               </tbody>
             </table>
           </Card>
-          {previa.registros.length > 500 && <p className="text-xs text-slate-500">Mostrando 500 de {previa.registros.length} linhas. Todas serão importadas.</p>}
+          {previa.totalLinhas > previa.registros.length && <p className="text-xs text-slate-500">Mostrando {previa.registros.length} de {previa.totalLinhas.toLocaleString('pt-BR')} linhas (as com erro vêm primeiro). Todas as válidas serão importadas.</p>}
           <div className="flex gap-2">
             <Botao onClick={confirmar} disabled={ocupado || previa.totais.novo + previa.totais.atualizar === 0}>Confirmar importação</Botao>
             <Botao variante="neutro" onClick={() => setPrevia(null)}>Cancelar</Botao>
